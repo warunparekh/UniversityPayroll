@@ -1,0 +1,33 @@
+using (var scope = app.Services.CreateScope())
+            {
+
+
+                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<MongoRole>>();
+                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+                foreach (var role in new[] { "Admin", "User" })
+                {
+                    if (!roleManager.RoleExistsAsync(role).GetAwaiter().GetResult())
+                        roleManager.CreateAsync(new MongoRole { Name = role })
+                               .GetAwaiter().GetResult();
+                }
+
+                const string adminEmail = "hr@uni.edu";
+                var admin = userManager.FindByEmailAsync(adminEmail).GetAwaiter().GetResult();
+                if (admin is null)
+                {
+                    admin = new ApplicationUser
+                    {
+                        UserName = adminEmail,
+                        Email = adminEmail,
+                    };
+                    userManager.CreateAsync(admin, "Password1@")
+                           .GetAwaiter().GetResult();
+                    userManager.AddToRolesAsync(admin, new[] { "Admin", "User" })
+                           .GetAwaiter().GetResult();
+
+
+                }
+
+
+            }
