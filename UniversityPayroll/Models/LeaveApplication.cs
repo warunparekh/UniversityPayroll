@@ -11,8 +11,8 @@ namespace UniversityPayroll.Models
 
         public string EmployeeId { get; set; }
         public string LeaveType { get; set; }
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
+        public DateTime StartDate { get; set; } = DateTime.Today;
+        public DateTime EndDate { get; set; } = DateTime.Today;
         public int TotalDays { get; set; }
         public string Reason { get; set; }
         public DateTime AppliedOn { get; set; }

@@ -194,3 +194,4 @@ D:\internship_sem7\UniversityPayroll\UniversityPayroll\bin\Debug\net8.0\Microsof
 D:\internship_sem7\UniversityPayroll\UniversityPayroll\bin\Debug\net8.0\Microsoft.Extensions.Logging.dll
 D:\internship_sem7\UniversityPayroll\UniversityPayroll\bin\Debug\net8.0\Microsoft.Extensions.Logging.Abstractions.dll
 D:\internship_sem7\UniversityPayroll\UniversityPayroll\bin\Debug\net8.0\Microsoft.Extensions.Options.dll
+D:\internship_sem7\UniversityPayroll\UniversityPayroll\obj\Debug\net8.0\UniversityPayroll.sourcelink.json
