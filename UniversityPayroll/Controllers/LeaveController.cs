@@ -31,12 +31,11 @@ namespace UniversityPayroll.Controllers
         public async Task<IActionResult> Index()
         {
             var user = await _userManager.GetUserAsync(User);
-            var employee = await _employeeRepo.GetByUserIdAsync(user.Id);
-
+            
             if (User.IsInRole("Admin"))
                 return View(await _leaveRepo.GetAllAsync());
 
-            return View(await _leaveRepo.GetByEmployeeAsync(employee.Id));
+            return View(user);
         }
 
         [HttpGet]
@@ -46,9 +45,8 @@ namespace UniversityPayroll.Controllers
         public async Task<IActionResult> Create(LeaveApplication model)
         {
             var user = await _userManager.GetUserAsync(User);
-            var employee = await _employeeRepo.GetByUserIdAsync(user.Id);
 
-            model.EmployeeId = employee.Id;
+            model.EmployeeId = user.Id.ToString();
             model.Status = "Pending";
             model.AppliedOn = DateTime.UtcNow;
 

@@ -4,10 +4,8 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace UniversityPayroll.Models
 {
-    public class ApplicationUser : MongoUser<string>
+    public class ApplicationUser : MongoUser<ObjectId>
     {
-        [BsonId]
-        [BsonRepresentation(BsonType.ObjectId)]
-        public override string Id { get; set; }
+        
     }
 }
