@@ -98,5 +98,23 @@ namespace UniversityPayroll.Controllers
             }
             return RedirectToAction(nameof(Index));
         }
+
+        [Authorize(Policy = "CrudOnlyForAdmin")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Accept(ObjectId id)
+        {
+            _leaveRepo.SetStatus(id, "Accepted");
+            return RedirectToAction(nameof(Index));
+        }
+
+        [Authorize(Policy = "CrudOnlyForAdmin")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Reject(ObjectId id)
+        {
+            _leaveRepo.SetStatus(id, "Rejected");
+            return RedirectToAction(nameof(Index));
+        }
     }
 }

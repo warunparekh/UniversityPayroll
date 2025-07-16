@@ -21,8 +21,14 @@
                     <div class="d-flex justify-content-between">
                         @if (User.IsInRole("Admin"))
                         {
-                            <a href="/Leave/Edit/@Model.Id" class="btn btn-warning">Edit</a>
-                            <a href="/Leave/Delete/@Model.Id" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this leave application?');">Delete</a>
+                            <form asp-action="Accept" asp-route-id="@Model.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-success">Accept</button>
+                            </form>
+                            <form asp-action="Reject" asp-route-id="@Model.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                            </form>
                         }
                         <a href="/Leave" class="btn btn-secondary">Back to List</a>
                     </div>

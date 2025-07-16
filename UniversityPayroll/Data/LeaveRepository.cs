@@ -29,5 +29,10 @@ namespace UniversityPayroll.Data
 
         public void Remove(ObjectId id) =>
             _leaves.DeleteOne(l => l.Id == id);
+
+        public void SetStatus(ObjectId id,string status) =>
+            _leaves.UpdateOne(l => l.Id == id,Builders<LeaveApplication>.Update.Set(l => l.Status, status).Set(l => l.DecidedOn, DateTime.UtcNow));
+
+        
     }
 }
