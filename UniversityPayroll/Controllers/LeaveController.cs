@@ -1,118 +1,96 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Bson;
 using UniversityPayroll.Data;
 using UniversityPayroll.Models;
 
 namespace UniversityPayroll.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = "UserOrAdmin")]
     public class LeaveController : Controller
     {
         private readonly LeaveRepository _leaveRepo;
+        private readonly LeaveBalanceRepository _balanceRepo;
         private readonly EmployeeRepository _employeeRepo;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public LeaveController(LeaveRepository leaveRepo, EmployeeRepository employeeRepo, UserManager<ApplicationUser> userManager)
+        public LeaveController(
+            LeaveRepository leaveRepo,
+            LeaveBalanceRepository balanceRepo,
+            EmployeeRepository employeeRepo,
+            UserManager<ApplicationUser> userManager)
         {
             _leaveRepo = leaveRepo;
+            _balanceRepo = balanceRepo;
             _employeeRepo = employeeRepo;
             _userManager = userManager;
-
         }
 
-        public  IActionResult Index()
+        public async Task<IActionResult> Index()
         {
+            var user = await _userManager.GetUserAsync(User);
+            var employee = await _employeeRepo.GetByUserIdAsync(user.Id);
+
             if (User.IsInRole("Admin"))
-                return View(_leaveRepo.GetAll());
+                return View(await _leaveRepo.GetAllAsync());
 
-
-            var id = ObjectId.Parse(_userManager.GetUserId(User));
-
-            var employee = _employeeRepo.FindByIdentityUserId(id);
-
-            if (employee is null)
-                return View(Enumerable.Empty<LeaveApplication>());    
-
-            var myLeaves = _leaveRepo.GetByEmployeeId(employee.EmployeeCode.ToString());
-            return View(myLeaves);
+            return View(await _leaveRepo.GetByEmployeeAsync(employee.Id));
         }
 
+        [HttpGet]
+        public IActionResult Create() => View();
 
-        public IActionResult Details(ObjectId id)
+        [HttpPost]
+        public async Task<IActionResult> Create(LeaveApplication model)
         {
-            var leave = _leaveRepo.GetById(id);
-            if (leave == null)
-                return NotFound();
-            return View(leave);
-        }
+            var user = await _userManager.GetUserAsync(User);
+            var employee = await _employeeRepo.GetByUserIdAsync(user.Id);
 
-        public IActionResult Create()
-        {
-            return View(new LeaveApplication());
+            model.EmployeeId = employee.Id;
+            model.Status = "Pending";
+            model.AppliedOn = DateTime.UtcNow;
+
+            await _leaveRepo.CreateAsync(model);
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Create(LeaveApplication leave)
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> Approve(string id)
         {
-            if (ModelState.IsValid)
-            {
-                leave.AppliedOn = DateTime.Now;
-                _leaveRepo.Create(leave);
-                return RedirectToAction(nameof(Index));
-            }
-            return View(leave);
-        }       
-
-        
-        [Authorize(Policy = "CrudOnlyForAdmin")]
-        public IActionResult Delete(ObjectId id)
-        {
-            var leave = _leaveRepo.GetById(id);
+            var leave = await _leaveRepo.GetByIdAsync(id);
             if (leave != null)
             {
-                _leaveRepo.Remove(id);
+                leave.Status = "Approved";
+                leave.DecidedBy = User.Identity.Name;
+                leave.DecidedOn = DateTime.UtcNow;
+                await _leaveRepo.UpdateAsync(leave);
+
+                // EmployeeId is a string now
+                await _balanceRepo.IncrementUsedAsync(
+                    leave.EmployeeId,
+                    leave.LeaveType,
+                    leave.TotalDays
+                );
             }
             return RedirectToAction(nameof(Index));
         }
 
-        
-
-        [Authorize(Policy = "CrudOnlyForAdmin")]
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Accept(ObjectId id, string comment)
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> Reject(string id, string comment)
         {
-            var leave = _leaveRepo.GetById(id);
-            if (leave == null)
-                return NotFound();
-
-            leave.Status = "Accepted";
-            leave.Comment = comment;
-            leave.DecidedOn = DateTime.Now;
-            leave.DecidedBy = User.Identity.Name; 
-
-            _leaveRepo.Update(id, leave);
-            return RedirectToAction(nameof(Index));
-        }
-
-        [Authorize(Policy = "CrudOnlyForAdmin")]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Reject(ObjectId id, string comment)
-        {
-            var leave = _leaveRepo.GetById(id);
-            if (leave == null)
-                return NotFound();
-
-            leave.Status = "Rejected";
-            leave.Comment = comment;
-            leave.DecidedOn = DateTime.Now;
-            leave.DecidedBy = User.Identity.Name;
-
-            _leaveRepo.Update(id, leave);
+            var leave = await _leaveRepo.GetByIdAsync(id);
+            if (leave != null)
+            {
+                leave.Status = "Rejected";
+                leave.Comment = comment;
+                leave.DecidedBy = User.Identity.Name;
+                leave.DecidedOn = DateTime.UtcNow;
+                await _leaveRepo.UpdateAsync(leave);
+            }
             return RedirectToAction(nameof(Index));
         }
     }

@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using MongoDB.Driver;
 using UniversityPayroll.Models;
 
@@ -6,29 +7,30 @@ namespace UniversityPayroll.Data
 {
     public class LeaveRepository
     {
-        private readonly IMongoCollection<LeaveApplication> _leaves;
-
+        private readonly IMongoCollection<LeaveApplication> _col;
         public LeaveRepository(MongoDbContext context)
-        {
-            _leaves = context.LeaveApplications;
-        }
+            => _col = context.LeaveApplications;
 
-        public List<LeaveApplication> GetAll() => _leaves.Find(l => true).ToList();
+        public async Task<List<LeaveApplication>> GetAllAsync() =>
+            await _col.Find(_ => true)
+                      .SortByDescending(x => x.AppliedOn)
+                      .ToListAsync();
 
-        public List<LeaveApplication> GetByEmployeeId(string employeeId) =>
-            _leaves.Find(l => l.EmployeeId == employeeId).ToList();
+        public async Task<LeaveApplication?> GetByIdAsync(string id) =>
+            await _col.Find(x => x.Id == id).FirstOrDefaultAsync();
 
-        public LeaveApplication GetById( ObjectId id) =>
-            _leaves.Find(l => l.Id == id).FirstOrDefault();
+        public async Task<List<LeaveApplication>> GetByEmployeeAsync(string empId) =>
+            await _col.Find(x => x.EmployeeId == empId)
+                      .SortByDescending(x => x.AppliedOn)
+                      .ToListAsync();
 
-        public void Create(LeaveApplication leave) =>
-            _leaves.InsertOne(leave);
+        public Task CreateAsync(LeaveApplication item) =>
+            _col.InsertOneAsync(item);
 
-        public void Update(ObjectId id, LeaveApplication leaveIn) =>
-            _leaves.ReplaceOne(l => l.Id == id, leaveIn);
+        public Task UpdateAsync(LeaveApplication item) =>
+            _col.ReplaceOneAsync(x => x.Id == item.Id, item);
 
-        public void Remove(ObjectId id) =>
-            _leaves.DeleteOne(l => l.Id == id);
-        
+        public Task DeleteAsync(string id) =>
+            _col.DeleteOneAsync(x => x.Id == id);
     }
 }

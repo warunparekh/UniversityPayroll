@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using MongoDB.Driver;
 using UniversityPayroll.Models;
 
@@ -6,28 +7,32 @@ namespace UniversityPayroll.Data
 {
     public class EmployeeRepository
     {
-        private readonly IMongoCollection<Employee> _employees;
+        private readonly IMongoCollection<Employee> _col;
 
         public EmployeeRepository(MongoDbContext context)
         {
-            _employees = context.Employees;
+            _col = context.Employees;
         }
 
-        public List<Employee> GetAll() => _employees.Find(emp => true).ToList();
+        public async Task<List<Employee>> GetAllAsync() =>
+            await _col.Find(_ => true).ToListAsync();
 
-        public Employee GetById(ObjectId id) =>
-            _employees.Find(emp => emp.Id == id).FirstOrDefault();
-        public Employee FindByIdentityUserId(ObjectId identityUserId) =>
-            _employees.Find(e => e.IdentityUserId == identityUserId).FirstOrDefault();
+        public async Task<Employee?> GetByIdAsync(string id) =>
+            await _col.Find(x => x.Id == id).FirstOrDefaultAsync();
 
+        public async Task<Employee?> GetByCodeAsync(string code) =>
+            await _col.Find(x => x.EmployeeCode == code).FirstOrDefaultAsync();
 
-        public void Create(Employee employee) =>
-            _employees.InsertOne(employee);
+        public async Task<Employee?> GetByUserIdAsync(string userId) =>
+            await _col.Find(x => x.IdentityUserId == userId).FirstOrDefaultAsync();
 
-        public void Update(ObjectId id, Employee employeeIn) =>
-            _employees.ReplaceOne(emp => emp.Id == id, employeeIn);
+        public async Task CreateAsync(Employee item) =>
+            await _col.InsertOneAsync(item);
 
-        public void Remove(ObjectId id) =>
-            _employees.DeleteOne(emp => emp.Id == id);
+        public async Task UpdateAsync(Employee item) =>
+            await _col.ReplaceOneAsync(x => x.Id == item.Id, item);
+
+        public async Task DeleteAsync(string id) =>
+            await _col.DeleteOneAsync(x => x.Id == id);
     }
 }
