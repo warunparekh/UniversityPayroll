@@ -143,3 +143,13 @@ C:\Users\ichik\Downloads\UniversityPayroll\UniversityPayroll\obj\Debug\net8.0\re
 C:\Users\ichik\Downloads\UniversityPayroll\UniversityPayroll\obj\Debug\net8.0\UniversityPayroll.pdb
 C:\Users\ichik\Downloads\UniversityPayroll\UniversityPayroll\obj\Debug\net8.0\UniversityPayroll.genruntimeconfig.cache
 C:\Users\ichik\Downloads\UniversityPayroll\UniversityPayroll\obj\Debug\net8.0\ref\UniversityPayroll.dll
+D:\internship_sem7\UniversityPayroll\UniversityPayroll\obj\Debug\net8.0\UniversityPayroll.csproj.AssemblyReference.cache
+D:\internship_sem7\UniversityPayroll\UniversityPayroll\obj\Debug\net8.0\rpswa.dswa.cache.json
+D:\internship_sem7\UniversityPayroll\UniversityPayroll\obj\Debug\net8.0\UniversityPayroll.GeneratedMSBuildEditorConfig.editorconfig
+D:\internship_sem7\UniversityPayroll\UniversityPayroll\obj\Debug\net8.0\UniversityPayroll.AssemblyInfoInputs.cache
+D:\internship_sem7\UniversityPayroll\UniversityPayroll\obj\Debug\net8.0\UniversityPayroll.AssemblyInfo.cs
+D:\internship_sem7\UniversityPayroll\UniversityPayroll\obj\Debug\net8.0\UniversityPayroll.csproj.CoreCompileInputs.cache
+D:\internship_sem7\UniversityPayroll\UniversityPayroll\obj\Debug\net8.0\UniversityPayroll.MvcApplicationPartsAssemblyInfo.cache
+D:\internship_sem7\UniversityPayroll\UniversityPayroll\obj\Debug\net8.0\UniversityPayroll.RazorAssemblyInfo.cache
+D:\internship_sem7\UniversityPayroll\UniversityPayroll\obj\Debug\net8.0\UniversityPayroll.RazorAssemblyInfo.cs
+D:\internship_sem7\UniversityPayroll\UniversityPayroll\obj\Debug\net8.0\UniversityPayroll.sourcelink.json

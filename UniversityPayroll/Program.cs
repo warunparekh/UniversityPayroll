@@ -9,6 +9,10 @@ using MongoDB.Driver;
 using System;
 using UniversityPayroll.Data;
 using UniversityPayroll.Models;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,19 +32,23 @@ builder.Services.AddScoped<SalarySlipRepository>();
 builder.Services.AddScoped<PayRunRepository>();
 
 builder.Services
-    .AddIdentityMongoDbProvider<ApplicationUser, MongoRole, string>(identityOptions =>
-    {
-        identityOptions.SignIn.RequireConfirmedAccount = false;
-        identityOptions.Password.RequiredLength = 6;
-        identityOptions.Password.RequireDigit = true;
-        identityOptions.Password.RequireUppercase = true;
-        identityOptions.Password.RequireNonAlphanumeric = true;
-    },
-    mongoOptions =>
-    {
-        mongoOptions.ConnectionString = builder.Configuration["MongoDbSettings:ConnectionString"];
-    })
+    .AddIdentityMongoDbProvider<ApplicationUser, MongoRole, string>(
+        mongoOptions =>
+        {
+            mongoOptions.ConnectionString =
+                builder.Configuration["MongoDbSettings:ConnectionString"];
+        })
     .AddDefaultTokenProviders();
+
+builder.Services.Configure<IdentityOptions>(identityOptions =>
+{
+    identityOptions.SignIn.RequireConfirmedAccount = false;
+    identityOptions.Password.RequiredLength = 6;
+    identityOptions.Password.RequireDigit = true;
+    identityOptions.Password.RequireUppercase = true;
+    identityOptions.Password.RequireNonAlphanumeric = true;
+});
+
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
@@ -68,7 +76,7 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
-
 app.MapRazorPages();
 
 app.Run();
+
