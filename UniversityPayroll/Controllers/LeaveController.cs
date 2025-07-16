@@ -64,30 +64,9 @@ namespace UniversityPayroll.Controllers
                 return RedirectToAction(nameof(Index));
             }
             return View(leave);
-        }
+        }       
 
-        [Authorize(Policy = "CrudOnlyForAdmin")]
-        public IActionResult Edit(ObjectId id)
-        {
-            var leave = _leaveRepo.GetById(id);
-            if (leave == null)
-                return NotFound();
-            return View(leave);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Policy = "CrudOnlyForAdmin")]
-        public IActionResult Edit(ObjectId id, LeaveApplication leave)
-        {
-            if (ModelState.IsValid)
-            {
-                leave.Id = id;
-                _leaveRepo.Update(id, leave);
-                return RedirectToAction(nameof(Index));
-            }
-            return View(leave);
-        }
+        
         [Authorize(Policy = "CrudOnlyForAdmin")]
         public IActionResult Delete(ObjectId id)
         {

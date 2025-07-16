@@ -18,7 +18,7 @@
                         <li class="list-group-item"><b>Reason:</b> @Model.Reason</li>
                         <li class="list-group-item"><b>Comment:</b> @Model.Comment</li>
                     </ul>
-                    <div class="d-flex justify-content-between">
+                    <div class="card-body">
                         @if (User.IsInRole("Admin"))
                         {
                             @* <form asp-action="Accept" asp-route-id="@Model.Id" method="post" class="d-inline">
@@ -30,46 +30,57 @@
                                 <button type="submit" class="btn btn-sm btn-danger">Reject</button>
                             </form> *@
 
-                            <button type="button" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
-                            <button type="button" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
+                            @* <button type="button" onclick="openAForm()" class="btn btn-success">Approve</button>
+                            <button type="button" onclick="openRForm()" class="btn btn-danger">Reject</button> *@
 
                             <!-- Approve Modal -->
-                            <div class="modal fade" id="approveModal" tabindex="-1">
-                                <div class="modal-dialog">
+                            
                                     <form asp-action="Accept" method="post">
                                         <input type="hidden" name="id" value="@Model.Id" />
-                                        <div class="modal-body">
-                                            <label for="approveComment">Comment</label>
-                                            <textarea name="comment" id="approveComment" class="form-control"></textarea>
+                                        <div class="mb-3">
+                                            <label for="comment">Comment</label>
+                                            <textarea name="comment" class="form-control"></textarea>
                                         </div>
-                                        <div class="modal-footer">
+                                        <div class="mb-3">
                                             <button type="submit" class="btn btn-success">Approve</button>
                                         </div>
                                     </form>
-                                </div>
-                            </div>
+                                
+                            
                             <!-- Reject Modal -->
-                            <div class="modal fade" id="rejectModal" tabindex="-1">
-                                <div class="modal-dialog">
                                     <form asp-action="Reject" method="post">
                                         <input type="hidden" name="id" value="@Model.Id" />
-                                        <div class="modal-body">
-                                            <label for="rejectComment">Comment</label>
-                                            <textarea name="comment" id="rejectComment" class="form-control"></textarea>
+                                        <div class="mb-3">
+                                            <label for="comment">Comment</label>
+                                            <textarea name="comment" class="form-control"></textarea>
                                         </div>
-                                        <div class="modal-footer">
-                                            <button type="submit" class="btn btn-danger">Reject</button>
+                                        <div class="mb-3">
+                                            <button type="submit" class="btn btn-danger">Reject</button> 
                                         </div>
                                     </form>
-                                </div>
-                            </div>
+                                
 
 
                         }
                         <a href="/Leave" class="btn btn-secondary">Back to List</a>
-                    </div>
+                    </>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+                                        @* <script>
+                                            function openAForm(){
+                                                document.getElementById("AForm").style.display = "block"
+                                            }
+                                            function openRForm(){
+                                                document.getElementById("RForm").style.display = "block"
+                                            }
+                                            function closeAForm(){
+                                                document.getElementById("AForm").style.display = "none"
+                                            }
+                                            function closeRForm(){
+                                                document.getElementById("RForm").style.display = "none"
+                                            }
+                                        </script> *@
