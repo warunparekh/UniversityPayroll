@@ -99,21 +99,41 @@ namespace UniversityPayroll.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        
+
         [Authorize(Policy = "CrudOnlyForAdmin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Accept(ObjectId id)
+        public IActionResult Accept(ObjectId id, string comment)
         {
-            _leaveRepo.SetStatus(id, "Accepted");
+            var leave = _leaveRepo.GetById(id);
+            if (leave == null)
+                return NotFound();
+
+            leave.Status = "Accepted";
+            leave.Comment = comment;
+            leave.DecidedOn = DateTime.Now;
+            leave.DecidedBy = User.Identity.Name; 
+
+            _leaveRepo.Update(id, leave);
             return RedirectToAction(nameof(Index));
         }
 
         [Authorize(Policy = "CrudOnlyForAdmin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Reject(ObjectId id)
+        public IActionResult Reject(ObjectId id, string comment)
         {
-            _leaveRepo.SetStatus(id, "Rejected");
+            var leave = _leaveRepo.GetById(id);
+            if (leave == null)
+                return NotFound();
+
+            leave.Status = "Rejected";
+            leave.Comment = comment;
+            leave.DecidedOn = DateTime.Now;
+            leave.DecidedBy = User.Identity.Name;
+
+            _leaveRepo.Update(id, leave);
             return RedirectToAction(nameof(Index));
         }
     }

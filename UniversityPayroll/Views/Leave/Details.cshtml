@@ -21,14 +21,50 @@
                     <div class="d-flex justify-content-between">
                         @if (User.IsInRole("Admin"))
                         {
-                            <form asp-action="Accept" asp-route-id="@Model.Id" method="post" class="d-inline">
+                            @* <form asp-action="Accept" asp-route-id="@Model.Id" method="post" class="d-inline">
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="btn btn-sm btn-success">Accept</button>
                             </form>
                             <form asp-action="Reject" asp-route-id="@Model.Id" method="post" class="d-inline">
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="btn btn-sm btn-danger">Reject</button>
-                            </form>
+                            </form> *@
+
+                            <button type="button" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
+                            <button type="button" data-bs-toggle="modal" data-bs-target="#rejectModal">Reject</button>
+
+                            <!-- Approve Modal -->
+                            <div class="modal fade" id="approveModal" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <form asp-action="Accept" method="post">
+                                        <input type="hidden" name="id" value="@Model.Id" />
+                                        <div class="modal-body">
+                                            <label for="approveComment">Comment</label>
+                                            <textarea name="comment" id="approveComment" class="form-control"></textarea>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="submit" class="btn btn-success">Approve</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            <!-- Reject Modal -->
+                            <div class="modal fade" id="rejectModal" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <form asp-action="Reject" method="post">
+                                        <input type="hidden" name="id" value="@Model.Id" />
+                                        <div class="modal-body">
+                                            <label for="rejectComment">Comment</label>
+                                            <textarea name="comment" id="rejectComment" class="form-control"></textarea>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="submit" class="btn btn-danger">Reject</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+
                         }
                         <a href="/Leave" class="btn btn-secondary">Back to List</a>
                     </div>
