@@ -7,13 +7,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AspNetCore.Identity.Mongo" Version="10.1.0" />
-    <PackageReference Include="MongoDB.Driver" Version="3.4.0" />
+    <Compile Remove="Views\Employee\**" />
+    <Compile Remove="Views\Leave\**" />
+    <Content Remove="Views\Employee\**" />
+    <Content Remove="Views\Leave\**" />
+    <EmbeddedResource Remove="Views\Employee\**" />
+    <EmbeddedResource Remove="Views\Leave\**" />
+    <None Remove="Views\Employee\**" />
+    <None Remove="Views\Leave\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Views\Employee\" />
-    <Folder Include="Views\Leave\" />
+    <PackageReference Include="AspNetCore.Identity.Mongo" Version="10.1.0" />
+    <PackageReference Include="MongoDB.Driver" Version="3.4.0" />
   </ItemGroup>
 
 </Project>

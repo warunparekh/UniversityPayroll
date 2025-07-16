@@ -23,8 +23,7 @@ namespace UniversityPayroll.Data
         public async Task<Employee?> GetByCodeAsync(string code) =>
             await _col.Find(x => x.EmployeeCode == code).FirstOrDefaultAsync();
 
-        public async Task<Employee?> GetByUserIdAsync(string userId) =>
-            await _col.Find(x => x.IdentityUserId == userId).FirstOrDefaultAsync();
+        
 
         public async Task CreateAsync(Employee item) =>
             await _col.InsertOneAsync(item);
