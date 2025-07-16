@@ -4,7 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace UniversityPayroll.Models
 {
-    public class ApplicationUser : MongoUser<ObjectId>
+    public class ApplicationUser : MongoUser
     {
         
     }

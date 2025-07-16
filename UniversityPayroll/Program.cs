@@ -28,7 +28,7 @@ builder.Services.AddScoped<SalarySlipRepository>();
 builder.Services.AddScoped<PayRunRepository>();
 
 builder.Services
-    .AddIdentityMongoDbProvider<ApplicationUser, MongoRole, string>(identityOptions =>
+    .AddIdentityMongoDbProvider<ApplicationUser, MongoRole>(identityOptions =>
     {
         identityOptions.SignIn.RequireConfirmedAccount = false;
         identityOptions.Password.RequiredLength = 6;
