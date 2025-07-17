@@ -1,0 +1,47 @@
+﻿@model UniversityPayroll.Models.SalaryStructure
+@{
+    ViewData["Title"] = "Edit Salary Structure";
+}
+
+<h2>Edit Salary Structure</h2>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <div class="mb-3">
+        <label asp-for="Designation" class="form-label">Designation</label>
+        <input asp-for="Designation" class="form-control" required />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Allowances.DaPercent" class="form-label">DA %</label>
+        <input asp-for="Allowances.DaPercent" class="form-control" type="number" step="0.01" required />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Allowances.HraPercent" class="form-label">HRA %</label>
+        <input asp-for="Allowances.HraPercent" class="form-control" type="number" step="0.01" required />
+    </div>
+    <div class="mb-3">
+        <label asp-for="AnnualIncrementPercent" class="form-label">Annual Increment %</label>
+        <input asp-for="AnnualIncrementPercent" class="form-control" type="number" step="0.01" required />
+    </div>
+    <fieldset class="border p-3 mb-3">
+        <legend class="float-none w-auto">Provident Fund Rules</legend>
+        <div class="mb-3">
+            <label asp-for="Pf.EmployeePercent" class="form-label">Employee %</label>
+            <input asp-for="Pf.EmployeePercent" class="form-control" type="number" step="0.01" required />
+        </div>
+        <div class="mb-3">
+            <label asp-for="Pf.EmployerPercent" class="form-label">Employer %</label>
+            <input asp-for="Pf.EmployerPercent" class="form-control" type="number" step="0.01" required />
+        </div>
+        <div class="mb-3">
+            <label asp-for="Pf.EdliPercent" class="form-label">EDLI %</label>
+            <input asp-for="Pf.EdliPercent" class="form-control" type="number" step="0.01" required />
+        </div>
+        <div class="mb-3">
+            <label asp-for="Pf.PfWageCeiling" class="form-label">PF Ceiling</label>
+            <input asp-for="Pf.PfWageCeiling" class="form-control" type="number" step="0.01" required />
+        </div>
+    </fieldset>
+    <button type="submit" class="btn btn-primary">Update</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>

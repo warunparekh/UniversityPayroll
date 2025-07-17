@@ -1,0 +1,43 @@
+﻿@model List<UniversityPayroll.Models.Employee>
+@{
+    ViewData["Title"] = "Employees";
+}
+
+<h2>Employees</h2>
+<p>
+    <a asp-action="Create" class="btn btn-primary">Add Employee</a>
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Designation</th>
+            <th>Base Salary</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var emp in Model)
+        {
+            <tr>
+                <td>@emp.EmployeeCode</td>
+                <td>@emp.Name</td>
+                <td>@emp.Designation</td>
+                <td>@emp.BaseSalary</td>
+                <td>@emp.Status</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@emp.Id" class="btn btn-sm btn-secondary">Edit</a>
+                    <form asp-action="Delete" asp-route-id="@emp.Id" method="post" style="display:inline">
+                        <button type="submit" class="btn btn-sm btn-danger"
+                                onclick="return confirm('Delete this employee?');">
+                            Delete
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

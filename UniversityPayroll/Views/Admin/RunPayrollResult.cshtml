@@ -1,0 +1,17 @@
+﻿@{
+    ViewData["Title"] = "Payroll Result";
+}
+
+<h2>Payroll Completed</h2>
+
+@if (ViewBag.Count != null)
+{
+    <p><strong>@ViewBag.Count</strong> payslips generated.</p>
+}
+else
+{
+    <p>Payroll run completed.</p>
+}
+
+<a asp-action="RunPayroll" class="btn btn-secondary">Run Again</a>
+<a asp-controller="Home" asp-action="Index" class="btn btn-primary">Go to Dashboard</a>

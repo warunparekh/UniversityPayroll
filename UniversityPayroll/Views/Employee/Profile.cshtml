@@ -1,0 +1,104 @@
+﻿@model UniversityPayroll.ViewModels.EmployeeProfileViewModel
+@{
+    ViewData["Title"] = "Profile";
+}
+
+<h2>My Profile</h2>
+
+@if (Model.Employee == null)
+{
+    <div class="alert alert-danger">Profile not found.</div>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Details</h4>
+            <p><strong>Code:</strong> @Model.Employee.EmployeeCode</p>
+            <p><strong>Name:</strong> @Model.Employee.Name</p>
+            <p><strong>Designation:</strong> @Model.Employee.Designation</p>
+            <p><strong>Base Salary:</strong> @Model.Employee.BaseSalary</p>
+
+            <h5>Salary Structure</h5>
+            @if (Model.SalaryStructure != null)
+            {
+                <ul>
+                    <li>DA %: @Model.SalaryStructure.Allowances?.DaPercent</li>
+                    <li>HRA %: @Model.SalaryStructure.Allowances?.HraPercent</li>
+                    @if (Model.SalaryStructure.Allowances?.OtherAllowances != null)
+                    {
+                        @foreach (var o in Model.SalaryStructure.Allowances.OtherAllowances)
+                        {
+                            <li>@o.Name: @o.Percent %</li>
+                        }
+                    }
+                </ul>
+            }
+            else
+            {
+                <span class="text-danger">No salary structure info.</span>
+            }
+
+            <p>
+                <strong>Tax Slab:</strong>
+                @(Model.TaxSlab != null ? $"{Model.TaxSlab.FinancialYear} ({Model.TaxSlab.CessPercent}% cess)" : "N/A")
+            </p>
+        </div>
+        <div class="col-md-6">
+            <h4>Leave Balances (@(Model.LeaveBalance?.Year ?? DateTime.UtcNow.Year))</h4>
+            @if (Model.LeaveBalance != null && Model.LeaveBalance.Entitlements != null)
+            {
+                <table class="table table-bordered w-auto">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Entitled</th>
+                            <th>Used</th>
+                            <th>Left</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var kv in Model.LeaveBalance.Entitlements)
+                        {
+                            var type = kv.Key;
+                            var entitled = kv.Value;
+                            var used = Model.LeaveBalance.Used != null && Model.LeaveBalance.Used.ContainsKey(type) ? Model.LeaveBalance.Used[type] : 0;
+                            var left = Model.LeaveBalance.Balance != null && Model.LeaveBalance.Balance.ContainsKey(type) ? Model.LeaveBalance.Balance[type] : (entitled - used);
+                            <tr>
+                                <td>@type</td>
+                                <td>@entitled</td>
+                                <td>@used</td>
+                                <td>@left</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div class="alert alert-warning">Leave balance info not found.</div>
+            }
+
+            <h4>Payslips</h4>
+            @if (Model.SalarySlips != null && Model.SalarySlips.Any())
+            {
+                <ul>
+                    @foreach (var slip in Model.SalarySlips)
+                    {
+                        <li>
+                            @slip.Month/@slip.Year
+                            @if (!string.IsNullOrEmpty(slip.PdfUrl))
+                            {
+                               <p>-</p> <a href = "@slip.PdfUrl" target = "_blank" > Download </a>
+                                            }
+                        </li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <div>No payslips yet.</div>
+            }
+        </div>
+    </div>
+}

@@ -1,0 +1,39 @@
+﻿@{
+    ViewData["Title"] = "Run Payroll";
+    var thisYear = DateTime.UtcNow.Year;
+    var monthNames = new[]
+    {
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    };
+}
+<h2>Run Payroll</h2>
+<form asp-action="RunPayroll" method="post">
+  <div class="mb-3">
+    <label class="form-label">Month</label>
+    <select name="month" class="form-select" required>
+      @for (int i = 0; i < 12; i++)
+      {
+        <option value="@(i+1)">@monthNames[i]</option>
+      }
+    </select>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Year</label>
+        <select name="year" class="form-select" required>
+            @for (int y = thisYear - 3; y <= thisYear + 1; y++)
+            {
+                if (y == thisYear)
+                {
+                    <option value="@y" selected>@y</option>
+                }
+                else
+                {
+                    <option value="@y">@y</option>
+                }
+            }
+        </select>
+
+  </div>
+  <button type="submit" class="btn btn-primary mt-2">Run</button>
+</form>

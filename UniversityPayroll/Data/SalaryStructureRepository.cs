@@ -28,5 +28,8 @@ namespace UniversityPayroll.Data
 
         public async Task DeleteAsync(string id) =>
             await _col.DeleteOneAsync(x => x.Id == id);
+        public async Task<SalaryStructure?> GetByDesignationAsync(string designation) =>
+            await _col.Find(x => x.Designation == designation)
+                      .FirstOrDefaultAsync();
     }
 }

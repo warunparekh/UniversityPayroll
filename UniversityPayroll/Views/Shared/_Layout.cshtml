@@ -20,20 +20,23 @@
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
                         @if (User.IsInRole("Admin"))
                         {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Employee" asp-action="Index">Employee</a>
-                            </li>
-                            
+                            <a asp-controller="Employee" asp-action="Index" class="btn btn-primary mx-2">Manage Employees</a>
                         }
+                        else
+                        {
+                            <a asp-controller="Employee" asp-action="Profile" class="btn btn-primary mx-2">My Profile</a>
+                        }
+                        </li>
                         
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Leave" asp-action="Index">Leave</a>
+                            <a class="btn btn-primary mx-2" asp-area="" asp-controller="Leave" asp-action="Index">Leave</a>
                         </li>
 
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="Logout">Logout</a>
+                            <a class="btn btn-primary mx-2" asp-area="" asp-controller="Account" asp-action="Logout">Logout</a>
                         </li>
 
                     </ul>

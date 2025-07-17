@@ -8,21 +8,24 @@ namespace UniversityPayroll.Data
     public class LeaveRepository
     {
         private readonly IMongoCollection<LeaveApplication> _col;
+
         public LeaveRepository(MongoDbContext context)
-            => _col = context.LeaveApplications;
+        {
+            _col = context.LeaveApplications;
+        }
 
-        public async Task<List<LeaveApplication>> GetAllAsync() =>
-            await _col.Find(_ => true)
-                      .SortByDescending(x => x.AppliedOn)
-                      .ToListAsync();
+        public Task<List<LeaveApplication>> GetAllAsync() =>
+            _col.Find(_ => true)
+                .SortByDescending(x => x.AppliedOn)
+                .ToListAsync();
 
-        public async Task<LeaveApplication?> GetByIdAsync(string id) =>
-            await _col.Find(x => x.Id == id).FirstOrDefaultAsync();
+        public Task<LeaveApplication?> GetByIdAsync(string id) =>
+            _col.Find(x => x.Id == id).FirstOrDefaultAsync();
 
-        public async Task<List<LeaveApplication>> GetByEmployeeAsync(string empId) =>
-            await _col.Find(x => x.EmployeeId == empId)
-                      .SortByDescending(x => x.AppliedOn)
-                      .ToListAsync();
+        public Task<List<LeaveApplication>> GetByEmployeeAsync(string employeeId) =>
+            _col.Find(x => x.EmployeeId == employeeId)
+                .SortByDescending(x => x.AppliedOn)
+                .ToListAsync();
 
         public Task CreateAsync(LeaveApplication item) =>
             _col.InsertOneAsync(item);

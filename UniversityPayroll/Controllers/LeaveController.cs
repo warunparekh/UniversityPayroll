@@ -8,7 +8,7 @@ using UniversityPayroll.Models;
 
 namespace UniversityPayroll.Controllers
 {
-    [Authorize(Policy = "UserOrAdmin")]
+    [Authorize]
     public class LeaveController : Controller
     {
         private readonly LeaveRepository _leaveRepo;
@@ -31,50 +31,71 @@ namespace UniversityPayroll.Controllers
         public async Task<IActionResult> Index()
         {
             var user = await _userManager.GetUserAsync(User);
-            
-            if (User.IsInRole("Admin"))
-                return View(await _leaveRepo.GetAllAsync());
-
-            return View(user);
+            var employee = await _employeeRepo.GetByUserIdAsync(user.Id.ToString());
+            var leaves = User.IsInRole("Admin")
+                ? await _leaveRepo.GetAllAsync()
+                : await _leaveRepo.GetByEmployeeAsync(employee.Id);
+            return View(leaves);
         }
 
         [HttpGet]
-        public IActionResult Create() => View();
+        public async Task<IActionResult> Create()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var emp = await _employeeRepo.GetByUserIdAsync(user.Id.ToString());
+            var entRepo = new LeaveEntitlementRepository(new MongoDbContext(
+                HttpContext.RequestServices.GetService(typeof(Microsoft.Extensions.Options.IOptions<MongoDbSettings>)) as Microsoft.Extensions.Options.IOptions<MongoDbSettings>
+            ));
+            var ent = await entRepo.GetByDesignationAsync(emp.Designation);
+
+            ViewBag.LeaveTypes = ent?.Entitlements?.Keys?.ToList() ?? new List<string> { "CL", "EL", "HPL" };
+            ViewBag.EmployeeCode = emp.EmployeeCode;
+            return View();
+        }
+
 
         [HttpPost]
         public async Task<IActionResult> Create(LeaveApplication model)
         {
             var user = await _userManager.GetUserAsync(User);
-
-            model.EmployeeId = user.Id.ToString();
+            var employee = await _employeeRepo.GetByUserIdAsync(user.Id.ToString());
+            model.EmployeeId = employee.Id;
             model.Status = "Pending";
             model.AppliedOn = DateTime.UtcNow;
-
             await _leaveRepo.CreateAsync(model);
             return RedirectToAction(nameof(Index));
         }
 
-        [HttpPost]
         [Authorize(Policy = "AdminOnly")]
+        [HttpPost]
         public async Task<IActionResult> Approve(string id)
         {
             var leave = await _leaveRepo.GetByIdAsync(id);
-            if (leave != null)
+            if (leave != null && leave.Status != "Approved")
             {
                 leave.Status = "Approved";
                 leave.DecidedBy = User.Identity.Name;
                 leave.DecidedOn = DateTime.UtcNow;
                 await _leaveRepo.UpdateAsync(leave);
 
-                // EmployeeId is a string now
-                await _balanceRepo.IncrementUsedAsync(
-                    leave.EmployeeId,
-                    leave.LeaveType,
-                    leave.TotalDays
-                );
+                // Update leave balance!
+                var balance = await _balanceRepo.GetByEmployeeYearAsync(leave.EmployeeId, leave.StartDate.Year);
+                if (balance != null)
+                {
+                    if (!balance.Used.ContainsKey(leave.LeaveType))
+                        balance.Used[leave.LeaveType] = 0;
+                    if (!balance.Balance.ContainsKey(leave.LeaveType))
+                        balance.Balance[leave.LeaveType] = balance.Entitlements[leave.LeaveType];
+
+                    balance.Used[leave.LeaveType] += leave.TotalDays;
+                    balance.Balance[leave.LeaveType] = balance.Entitlements[leave.LeaveType] - balance.Used[leave.LeaveType];
+                    balance.UpdatedOn = DateTime.UtcNow;
+                    await _balanceRepo.UpdateAsync(balance);
+                }
             }
             return RedirectToAction(nameof(Index));
         }
+
 
         [HttpPost]
         [Authorize(Policy = "AdminOnly")]

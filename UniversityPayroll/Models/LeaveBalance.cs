@@ -10,10 +10,7 @@ namespace UniversityPayroll.Models
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
         public string Id { get; set; }
-
-        [BsonRepresentation(BsonType.ObjectId)]
         public string EmployeeId { get; set; }
-
         public int Year { get; set; }
         public Dictionary<string, int> Entitlements { get; set; }
         public Dictionary<string, int> Used { get; set; }

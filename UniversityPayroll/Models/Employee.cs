@@ -14,11 +14,12 @@ namespace UniversityPayroll.Models
         public string Name { get; set; }
         public string Designation { get; set; }
         public decimal BaseSalary { get; set; }
-        public double HraPercent { get; set; }
-        public double DaPercent { get; set; }
         public string Status { get; set; }
 
         [BsonRepresentation(BsonType.ObjectId)]
         public string IdentityUserId { get; set; }
+
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string TaxSlabId { get; set; }
     }
 }

@@ -6,33 +6,29 @@ namespace UniversityPayroll.Data
 {
     public class MongoDbContext
     {
-        private readonly IMongoDatabase _database;
-
+        private readonly IMongoDatabase _db;
         public MongoDbContext(IOptions<MongoDbSettings> settings)
         {
             var client = new MongoClient(settings.Value.ConnectionString);
-            _database = client.GetDatabase(settings.Value.DatabaseName);
+            _db = client.GetDatabase(settings.Value.DatabaseName);
         }
 
         public IMongoCollection<Employee> Employees =>
-            _database.GetCollection<Employee>("Employees");
-
+            _db.GetCollection<Employee>("Employees");
         public IMongoCollection<LeaveApplication> LeaveApplications =>
-            _database.GetCollection<LeaveApplication>("LeaveApplications");
-
+            _db.GetCollection<LeaveApplication>("LeaveApplications");
         public IMongoCollection<SalaryStructure> SalaryStructures =>
-            _database.GetCollection<SalaryStructure>("SalaryStructures");
-
+            _db.GetCollection<SalaryStructure>("SalaryStructures");
         public IMongoCollection<TaxSlab> TaxSlabs =>
-            _database.GetCollection<TaxSlab>("TaxSlabs");
-
+            _db.GetCollection<TaxSlab>("TaxSlabs");
         public IMongoCollection<LeaveBalance> LeaveBalances =>
-            _database.GetCollection<LeaveBalance>("LeaveBalances");
-
+            _db.GetCollection<LeaveBalance>("LeaveBalances");
         public IMongoCollection<SalarySlip> SalarySlips =>
-            _database.GetCollection<SalarySlip>("SalarySlips");
-
+            _db.GetCollection<SalarySlip>("SalarySlips");
         public IMongoCollection<PayRun> PayRuns =>
-            _database.GetCollection<PayRun>("PayRuns");
+            _db.GetCollection<PayRun>("PayRuns");
+        // new collection for entitlements
+        public IMongoCollection<LeaveEntitlement> LeaveEntitlements =>
+            _db.GetCollection<LeaveEntitlement>("LeaveEntitlements");
     }
 }

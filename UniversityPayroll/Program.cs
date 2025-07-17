@@ -9,6 +9,7 @@ using MongoDB.Driver;
 using System;
 using UniversityPayroll.Data;
 using UniversityPayroll.Models;
+using UniversityPayroll.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +27,7 @@ builder.Services.AddScoped<TaxSlabRepository>();
 builder.Services.AddScoped<LeaveBalanceRepository>();
 builder.Services.AddScoped<SalarySlipRepository>();
 builder.Services.AddScoped<PayRunRepository>();
+builder.Services.AddScoped<PayrollService>();
 
 builder.Services
     .AddIdentityMongoDbProvider<ApplicationUser, MongoRole>(identityOptions =>

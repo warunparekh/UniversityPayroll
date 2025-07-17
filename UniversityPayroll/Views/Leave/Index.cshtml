@@ -1,0 +1,55 @@
+﻿@model List<UniversityPayroll.Models.LeaveApplication>
+@{
+    ViewData["Title"] = "Leave Applications";
+}
+
+<h2>Leave Applications</h2>
+<p>
+    <a asp-action="Create" class="btn btn-primary">Apply for Leave</a>
+</p>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Employee</th>
+            <th>Type</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Days</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Comment</th>
+            <th>Decided By</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var leave in Model)
+        {
+            <tr>
+                <td>@leave.EmployeeId</td>
+                <td>@leave.LeaveType</td>
+                <td>@leave.StartDate.ToShortDateString()</td>
+                <td>@leave.EndDate.ToShortDateString()</td>
+                <td>@leave.TotalDays</td>
+                <td>@leave.Reason</td>
+                <td>@leave.Status</td>
+                <td>@leave.Comment</td>
+                <td>@leave.DecidedBy</td>
+                <td>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <div class="d-flex">
+                            <form asp-action="Approve" asp-route-id="@leave.Id" method="post" class="me-1">
+                                <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                            </form>
+                            <form asp-action="Reject" asp-route-id="@leave.Id" method="post">
+                                <input type="text" name="comment" class="form-control form-control-sm mb-1" placeholder="Comment" required />
+                                <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                            </form>
+                        </div>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
