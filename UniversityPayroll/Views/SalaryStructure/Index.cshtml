@@ -1,44 +1,23 @@
-﻿@model List<UniversityPayroll.Models.SalaryStructure>
+﻿@model IEnumerable<UniversityPayroll.Models.SalaryStructure>
 @{
     ViewData["Title"] = "Salary Structures";
 }
-
 <h2>Salary Structures</h2>
-<p>
-    <a asp-action="Create" class="btn btn-primary">New Structure</a>
-</p>
-
+<p><a asp-action="Create" class="btn btn-success">New</a></p>
 <table class="table table-striped">
     <thead>
-        <tr>
-            <th>Designation</th>
-            <th>DA %</th>
-            <th>HRA %</th>
-            <th>Increment %</th>
-            <th>PF Emp %</th>
-            <th>PF Empr %</th>
-            <th>EDLI %</th>
-            <th>Actions</th>
-        </tr>
+        <tr><th>Designation</th><th>Basic</th><th></th></tr>
     </thead>
     <tbody>
         @foreach (var s in Model)
         {
             <tr>
-                <td>@s.Designation</td>
-                <td>@s.Allowances.DaPercent</td>
-                <td>@s.Allowances.HraPercent</td>
-                <td>@s.AnnualIncrementPercent</td>
-                <td>@s.Pf.EmployeePercent</td>
-                <td>@s.Pf.EmployerPercent</td>
-                <td>@s.Pf.EdliPercent</td>
+                <td>@s.DesignationId</td>
+                <td>@s.Basic</td>
                 <td>
-                    <a asp-action="Edit" asp-route-id="@s.Id" class="btn btn-sm btn-secondary">Edit</a>
+                    <a asp-action="Edit" asp-route-id="@s.Id" class="btn btn-sm btn-warning">Edit</a>
                     <form asp-action="Delete" asp-route-id="@s.Id" method="post" style="display:inline">
-                        <button type="submit" class="btn btn-sm btn-danger"
-                                onclick="return confirm('Delete this structure?');">
-                            Delete
-                        </button>
+                        <button class="btn btn-sm btn-danger">Delete</button>
                     </form>
                 </td>
             </tr>

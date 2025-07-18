@@ -1,0 +1,33 @@
+﻿@model UniversityPayroll.Models.DesignationViewModel
+@{
+    ViewData["Title"] = "Create Designation";
+}
+<h2>@ViewData["Title"]</h2>
+
+<form asp-action="Create" method="post">
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <input asp-for="Name" class="form-control" />
+    </div>
+
+    <h5>Leave Entitlements</h5>
+    <table class="table table-bordered">
+        <thead><tr><th>Type</th><th>Quota</th></tr></thead>
+        <tbody>
+            @for (int i = 0; i < Model.Entitlements.Count; i++)
+            {
+                <tr>
+                    <td>
+                        @Model.Entitlements[i].LeaveTypeName
+                        <input type="hidden" asp-for="Entitlements[@i].LeaveTypeId" />
+                    </td>
+                    <td>
+                        <input type="number" asp-for="Entitlements[@i].Quota" class="form-control" />
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+</form>

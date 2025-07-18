@@ -1,58 +1,42 @@
-﻿
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Identity;
+using System.Threading.Tasks;
 using UniversityPayroll.Models;
-using UniversityPayroll.ViewModels;
 
 namespace UniversityPayroll.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly UserManager<ApplicationUser> _um;
-        private readonly SignInManager<ApplicationUser> _sm;
-
-        public AccountController(
-            UserManager<ApplicationUser> um,
-            SignInManager<ApplicationUser> sm)
-        {
-            _um = um;
-            _sm = sm;
-        }
-
+        private readonly SignInManager<ApplicationUser> _signIn;
+        public AccountController(SignInManager<ApplicationUser> signIn) =>
+            _signIn = signIn;
 
         [HttpGet]
         public IActionResult Login(string returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
-            return View();
+            return View(model: returnUrl);
         }
 
-        [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel m, string returnUrl = null)
+        [HttpPost]
+        public async Task<IActionResult> Login(
+            string email, string password, string returnUrl = null)
         {
-            if (!ModelState.IsValid) return View(m);
+            var res = await _signIn.PasswordSignInAsync(
+                email, password, false, false);
 
-            var r = await _sm.PasswordSignInAsync(m.Email, m.Password, m.RememberMe, false);
-            if (r.Succeeded)
-            {
-                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                    return Redirect(returnUrl);
+            if (res.Succeeded)
+                return Redirect(returnUrl ?? "/");
 
-                return RedirectToAction("Index", "Home");
-            }
-            ModelState.AddModelError("", "Invalid login.");
-            return View(m);
+            ModelState.AddModelError("", "Invalid login");
+            return View(model: returnUrl);
         }
 
-        [HttpGet]
+        [HttpPost]
         public async Task<IActionResult> Logout()
         {
-            await _sm.SignOutAsync();
+            await _signIn.SignOutAsync();
             return RedirectToAction("Login");
         }
-
-
-
-
     }
 }

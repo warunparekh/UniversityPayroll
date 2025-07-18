@@ -1,42 +1,32 @@
-﻿using System;
-using System.Collections.Generic;
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using System.Collections.Generic;
 
 namespace UniversityPayroll.Models
 {
+    public class Allowance
+    {
+        public string Name { get; set; }
+        public decimal Amount { get; set; }
+    }
+
+    public class Deduction
+    {
+        public string Name { get; set; }
+        public decimal Amount { get; set; }
+    }
+
     public class SalaryStructure
     {
         [BsonId]
-        [BsonRepresentation(BsonType.ObjectId)]
-        public string Id { get; set; }
+        public ObjectId Id { get; set; }
 
-        public string Designation { get; set; }
-        public Allowances Allowances { get; set; }
-        public double AnnualIncrementPercent { get; set; }
-        public PfRules Pf { get; set; }
-        public DateTime CreatedOn { get; set; }
-        public DateTime UpdatedOn { get; set; }
-    }
+        public ObjectId DesignationId { get; set; }
 
-    public class Allowances
-    {
-        public double DaPercent { get; set; }
-        public double HraPercent { get; set; }
-        public List<OtherAllowance> OtherAllowances { get; set; }
-    }
+        public decimal Basic { get; set; }
 
-    public class OtherAllowance
-    {
-        public string Name { get; set; }
-        public double Percent { get; set; }
-    }
+        public List<Allowance> Allowances { get; set; } = new();
 
-    public class PfRules
-    {
-        public double EmployeePercent { get; set; }
-        public double EmployerPercent { get; set; }
-        public double EdliPercent { get; set; }
-        public decimal PfWageCeiling { get; set; }
+        public List<Deduction> Deductions { get; set; } = new();
     }
 }

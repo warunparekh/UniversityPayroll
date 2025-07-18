@@ -1,40 +1,25 @@
-﻿@model List<UniversityPayroll.Models.Employee>
+﻿@model IEnumerable<UniversityPayroll.Controllers.EmployeeController.ListModel>
 @{
     ViewData["Title"] = "Employees";
 }
-
 <h2>Employees</h2>
-<p>
-    <a asp-action="Create" class="btn btn-primary">Add Employee</a>
-</p>
-
+<p><a asp-action="Create" class="btn btn-success">New Employee</a></p>
 <table class="table table-striped">
     <thead>
-        <tr>
-            <th>Code</th>
-            <th>Name</th>
-            <th>Designation</th>
-            <th>Base Salary</th>
-            <th>Status</th>
-            <th></th>
-        </tr>
+        <tr><th>Name</th><th>Email</th><th>Designation</th><th></th></tr>
     </thead>
     <tbody>
-        @foreach (var emp in Model)
+        @foreach (var e in Model)
         {
             <tr>
-                <td>@emp.EmployeeCode</td>
-                <td>@emp.Name</td>
-                <td>@emp.Designation</td>
-                <td>@emp.BaseSalary</td>
-                <td>@emp.Status</td>
+                <td>@e.FullName</td>
+                <td>@e.Email</td>
+                <td>@e.Designation</td>
                 <td>
-                    <a asp-action="Edit" asp-route-id="@emp.Id" class="btn btn-sm btn-secondary">Edit</a>
-                    <form asp-action="Delete" asp-route-id="@emp.Id" method="post" style="display:inline">
-                        <button type="submit" class="btn btn-sm btn-danger"
-                                onclick="return confirm('Delete this employee?');">
-                            Delete
-                        </button>
+                    <a asp-action="Details" asp-route-id="@e.Id" class="btn btn-sm btn-info">Details</a>
+                    <a asp-action="Edit" asp-route-id="@e.Id" class="btn btn-sm btn-warning">Edit</a>
+                    <form asp-action="Delete" asp-route-id="@e.Id" method="post" style="display:inline">
+                        <button class="btn btn-sm btn-danger">Delete</button>
                     </form>
                 </td>
             </tr>

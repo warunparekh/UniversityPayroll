@@ -1,0 +1,19 @@
+﻿@{
+    ViewData["Title"] = "Apply for Leave";
+}
+<h2>Apply for Leave</h2>
+<form asp-action="Create" method="post">
+    <div class="mb-3">
+        <label>From</label>
+        <input name="from" type="date" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>To</label>
+        <input name="to" type="date" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Reason</label>
+        <textarea name="reason" class="form-control"></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+</form>

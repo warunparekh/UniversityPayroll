@@ -1,42 +1,17 @@
-@model UniversityPayroll.ViewModels.LoginViewModel
+﻿@model string
 @{
-    ViewData["Title"] = "Log in";
+    ViewData["Title"] = "Login";
 }
-
-<div class="container mt-5 animate__animated animate__fadeInDown">
-    <div class="row justify-content-center">
-        <div class="col-md-5">
-            <div class="card shadow-lg">
-                <div class="card-header bg-primary text-white text-center">
-                    <h2>@ViewData["Title"]</h2>
-                </div>
-                <div class="card-body">
-                    <form id="account" method="post">
-                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-                        <div class="form-floating mb-3">
-                            <input asp-for="Email" class="form-control" autocomplete="username" aria-required="true" />
-                            <label asp-for="Email"></label>
-                            <span asp-validation-for="Email" class="text-danger"></span>
-                        </div>
-                        <div class="form-floating mb-3">
-                            <input asp-for="Password" class="form-control" autocomplete="current-password" aria-required="true" />
-                            <label asp-for="Password"></label>
-                            <span asp-validation-for="Password" class="text-danger"></span>
-                        </div>
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" asp-for="RememberMe" />
-                            <label asp-for="RememberMe" class="form-check-label">
-                                @Html.DisplayNameFor(m => m.RememberMe)
-                            </label>
-                        </div>
-                        <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-success animate__animated animate__pulse">Log in</button>
-                    </form>
-                </div>
-            </div>
-        </div>
+<h2>Login</h2>
+<form asp-action="Login" method="post">
+    <div class="mb-3">
+        <label>Email</label>
+        <input name="email" class="form-control" />
     </div>
-</div>
-
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}
+    <div class="mb-3">
+        <label>Password</label>
+        <input name="password" type="password" class="form-control" />
+    </div>
+    <input type="hidden" name="returnUrl" value="@Model" />
+    <button class="btn btn-primary">Log in</button>
+</form>

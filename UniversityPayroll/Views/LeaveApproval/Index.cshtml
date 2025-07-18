@@ -1,0 +1,30 @@
+﻿@model IEnumerable<UniversityPayroll.Models.LeaveRequest>
+@{
+    ViewData["Title"] = "Approve Leave Requests";
+}
+<h2>Pending Leave Requests</h2>
+<table class="table table-striped">
+    <thead>
+        <tr><th>Employee ID</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th></th></tr>
+    </thead>
+    <tbody>
+        @foreach (var r in Model)
+        {
+            <tr>
+                <td>@r.EmployeeId</td>
+                <td>@r.From.ToShortDateString()</td>
+                <td>@r.To.ToShortDateString()</td>
+                <td>@r.Days</td>
+                <td>@r.Reason</td>
+                <td>
+                    <form asp-action="Approve" asp-route-id="@r.Id" method="post" style="display:inline">
+                        <button class="btn btn-sm btn-success">Approve</button>
+                    </form>
+                    <form asp-action="Reject" asp-route-id="@r.Id" method="post" style="display:inline">
+                        <button class="btn btn-sm btn-danger">Reject</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

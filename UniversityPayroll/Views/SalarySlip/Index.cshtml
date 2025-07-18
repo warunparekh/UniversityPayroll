@@ -1,0 +1,24 @@
+﻿@model IEnumerable<UniversityPayroll.Models.SalarySlip>
+@{
+    ViewData["Title"] = "Salary Slips";
+}
+<h2>Salary Slips</h2>
+<p><a asp-action="Generate" class="btn btn-success">Generate</a></p>
+<table class="table table-striped">
+    <thead>
+        <tr><th>Employee ID</th><th>Month</th><th>Year</th><th>Gross</th><th>Tax</th><th>Net</th></tr>
+    </thead>
+    <tbody>
+        @foreach (var s in Model)
+        {
+            <tr>
+                <td>@s.EmployeeId</td>
+                <td>@s.Month</td>
+                <td>@s.Year</td>
+                <td>@s.Gross</td>
+                <td>@s.Tax</td>
+                <td>@s.Net</td>
+            </tr>
+        }
+    </tbody>
+</table>

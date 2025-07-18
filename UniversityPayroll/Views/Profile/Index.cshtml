@@ -1,0 +1,48 @@
+﻿@{
+    ViewData["Title"] = "My Profile";
+}
+
+<h2>@ViewBag.Name's Profile</h2>
+<p><strong>Designation:</strong> @ViewBag.Designation</p>
+
+<h3>Leave Entitlements</h3>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Type</th>
+            <th>Quota</th>
+            <th>Used</th>
+            <th>Available</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var e in (IEnumerable<UniversityPayroll.Controllers.LeaveSummary>)ViewBag.Leaves)
+        {
+            <tr>
+                <td>@e.TypeName</td>
+                <td>@e.Quota</td>
+                <td>@e.Used</td>
+                <td>@e.Available</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<h3>Salary History</h3>
+<table class="table table-striped">
+    <thead>
+        <tr><th>Month</th><th>Year</th><th>Gross</th><th>Tax</th><th>Net</th></tr>
+    </thead>
+    <tbody>
+        @foreach (var s in (IEnumerable<UniversityPayroll.Models.SalarySlip>)ViewBag.SalarySlips)
+        {
+            <tr>
+                <td>@s.Month</td>
+                <td>@s.Year</td>
+                <td>@s.Gross</td>
+                <td>@s.Tax</td>
+                <td>@s.Net</td>
+            </tr>
+        }
+    </tbody>
+</table>

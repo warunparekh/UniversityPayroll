@@ -1,0 +1,28 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using UniversityPayroll.Models
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+@if (SignInManager.IsSignedIn(User))
+{
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="userMenu" role="button"
+           data-bs-toggle="dropdown" aria-expanded="false">
+            @User.Identity.Name
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+            <li><a class="dropdown-item" asp-controller="Profile" asp-action="Index">Profile</a></li>
+            <li>
+                <form asp-controller="Account" asp-action="Logout" method="post" class="dropdown-item p-0">
+                    <button type="submit" class="btn btn-link w-100 text-start">Logout</button>
+                </form>
+            </li>
+        </ul>
+    </li>
+}
+else
+{
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="Account" asp-action="Login">Login</a>
+    </li>
+}

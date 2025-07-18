@@ -1,79 +1,83 @@
-﻿using System;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using UniversityPayroll.Data;
+using System.Threading.Tasks;
 using UniversityPayroll.Models;
+using UniversityPayroll.Services;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Linq;
 
 namespace UniversityPayroll.Controllers
 {
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Roles = "Admin")]
     public class SalaryStructureController : Controller
     {
-        private readonly SalaryStructureRepository _repo;
+        private readonly SalaryStructureService _ssvc;
+        private readonly DesignationService _dsvc;
 
-        public SalaryStructureController(SalaryStructureRepository repo)
+        public SalaryStructureController(
+            SalaryStructureService ssvc,
+            DesignationService dsvc)
         {
-            _repo = repo;
+            _ssvc = ssvc;
+            _dsvc = dsvc;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index() =>
+            View(await _ssvc.GetAll());
+
+        public async Task<IActionResult> Create()
         {
-            var list = await _repo.GetAllAsync();
-            return View(list);
+            ViewBag.Designations = new SelectList(
+                await _dsvc.GetAll(), "Id", "Name");
+            var m = new SalaryStructure();
+            // initialize 3 blank slots each
+            m.Allowances.AddRange(Enumerable.Repeat(new Allowance(), 3));
+            m.Deductions.AddRange(Enumerable.Repeat(new Deduction(), 3));
+            return View(m);
         }
 
-        [HttpGet]
-        public IActionResult Create()
-        {
-            var model = new SalaryStructure
-            {
-                Allowances = new Allowances(),
-                Pf = new PfRules()
-            };
-            return View(model);
-        }
-
-        [Authorize(Policy = "CrudOnlyForAdmin")]
         [HttpPost]
-        public async Task<IActionResult> Create(SalaryStructure model)
+        public async Task<IActionResult> Create(SalaryStructure m)
         {
-            await _repo.CreateAsync(model);
-
-            var leaveEntRepo = new LeaveEntitlementRepository(new MongoDbContext(
-                HttpContext.RequestServices.GetService(typeof(Microsoft.Extensions.Options.IOptions<MongoDbSettings>)) as Microsoft.Extensions.Options.IOptions<MongoDbSettings>
-            ));
-            var ent = await leaveEntRepo.GetByDesignationAsync(model.Designation);
-            if (ent == null)
+            if (!ModelState.IsValid)
             {
-                await leaveEntRepo.CreateAsync(new LeaveEntitlement
-                {
-                    Designation = model.Designation,
-                    Entitlements = new System.Collections.Generic.Dictionary<string, int>
-                    {
-                        ["CL"] = 12,
-                        ["EL"] = 10,
-                        ["HPL"] = 20
-                    }
-                });
+                ViewBag.Designations = new SelectList(
+                    await _dsvc.GetAll(), "Id", "Name");
+                return View(m);
             }
-
+            await _ssvc.Create(m);
             return RedirectToAction(nameof(Index));
         }
 
+        public async Task<IActionResult> Edit(string id)
+        {
+            var m = await _ssvc.Get(id);
+            if (m == null) return NotFound();
+            ViewBag.Designations = new SelectList(
+                await _dsvc.GetAll(), "Id", "Name", m.DesignationId);
+            // ensure at least 3 slots for editing
+            while (m.Allowances.Count < 3) m.Allowances.Add(new Allowance());
+            while (m.Deductions.Count < 3) m.Deductions.Add(new Deduction());
+            return View(m);
+        }
 
         [HttpPost]
-        public async Task<IActionResult> Edit(SalaryStructure model)
+        public async Task<IActionResult> Edit(string id, SalaryStructure m)
         {
-            model.UpdatedOn = DateTime.UtcNow;
-            await _repo.UpdateAsync(model);
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Designations = new SelectList(
+                    await _dsvc.GetAll(), "Id", "Name", m.DesignationId);
+                return View(m);
+            }
+            await _ssvc.Update(id, m);
             return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
         public async Task<IActionResult> Delete(string id)
         {
-            await _repo.DeleteAsync(id);
+            await _ssvc.Delete(id);
             return RedirectToAction(nameof(Index));
         }
     }

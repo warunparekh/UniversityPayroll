@@ -1,72 +1,50 @@
 ﻿// Controllers/TaxSlabController.cs
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using UniversityPayroll.Data;
+using System.Threading.Tasks;
 using UniversityPayroll.Models;
+using UniversityPayroll.Services;
 
 namespace UniversityPayroll.Controllers
 {
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Roles = "Admin")]
     public class TaxSlabController : Controller
     {
-        private readonly TaxSlabRepository _repo;
+        private readonly TaxSlabService _svc;
+        public TaxSlabController(TaxSlabService svc) => _svc = svc;
 
-        public TaxSlabController(TaxSlabRepository repo)
-        {
-            _repo = repo;
-        }
+        public async Task<IActionResult> Index() =>
+            View(await _svc.GetAll());
 
-        public async Task<IActionResult> Index()
-        {
-            var list = await _repo.GetAllAsync();
-            return View(list);
-        }
-
-        [HttpGet]
-        public IActionResult Create()
-        {
-            var model = new TaxSlab
-            {
-                Slabs = Enumerable.Range(0, 4).Select(_ => new Slab()).ToList()
-            };
-            return View(model);
-        }
+        public IActionResult Create() => View();
 
         [HttpPost]
-        public async Task<IActionResult> Create(TaxSlab model)
+        public async Task<IActionResult> Create(TaxSlab m)
         {
-            model.CreatedOn = DateTime.UtcNow;
-            model.UpdatedOn = DateTime.UtcNow;
-            model.Slabs = model.Slabs.Where(s => s.Rate > 0).ToList();
-            await _repo.CreateAsync(model);
+            if (!ModelState.IsValid) return View(m);
+            await _svc.Create(m);
             return RedirectToAction(nameof(Index));
         }
 
-        [HttpGet]
         public async Task<IActionResult> Edit(string id)
         {
-            var item = await _repo.GetByIdAsync(id);
-            if (item == null) return NotFound();
-            while (item.Slabs.Count < 4) item.Slabs.Add(new Slab());
-            return View(item);
+            var m = await _svc.Get(id);
+            if (m == null) return NotFound();
+            return View(m);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Edit(TaxSlab model)
+        public async Task<IActionResult> Edit(string id, TaxSlab m)
         {
-            model.UpdatedOn = DateTime.UtcNow;
-            model.Slabs = model.Slabs.Where(s => s.Rate > 0).ToList();
-            await _repo.UpdateAsync(model);
+            if (!ModelState.IsValid) return View(m);
+            await _svc.Update(id, m);
             return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
         public async Task<IActionResult> Delete(string id)
         {
-            await _repo.DeleteAsync(id);
+            await _svc.Delete(id);
             return RedirectToAction(nameof(Index));
         }
     }

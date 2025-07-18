@@ -1,0 +1,28 @@
+﻿@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    ViewData["Title"] = "Apply for Leave";
+}
+<h2>@ViewData["Title"]</h2>
+<form asp-action="Create" method="post">
+    <div class="mb-3">
+        <label class="form-label">Leave Type</label>
+        <select name="leaveTypeId" asp-items="ViewBag.LeaveTypes" class="form-select"></select>
+    </div>
+    <div class="mb-3 form-check">
+        <input name="isHalfDay" type="checkbox" class="form-check-input" />
+        <label class="form-check-label">Half Day</label>
+    </div>
+    <div class="mb-3">
+        <label>From</label>
+        <input name="from" type="date" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>To</label>
+        <input name="to" type="date" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Reason</label>
+        <textarea name="reason" class="form-control"></textarea>
+    </div>
+    <button class="btn btn-primary">Submit</button>
+</form>
