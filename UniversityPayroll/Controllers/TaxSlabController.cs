@@ -40,7 +40,6 @@ namespace UniversityPayroll.Controllers
         {
             model.CreatedOn = DateTime.UtcNow;
             model.UpdatedOn = DateTime.UtcNow;
-            // remove empty slabs (rate==0)
             model.Slabs = model.Slabs.Where(s => s.Rate > 0).ToList();
             await _repo.CreateAsync(model);
             return RedirectToAction(nameof(Index));
@@ -51,7 +50,6 @@ namespace UniversityPayroll.Controllers
         {
             var item = await _repo.GetByIdAsync(id);
             if (item == null) return NotFound();
-            // pad to 4
             while (item.Slabs.Count < 4) item.Slabs.Add(new Slab());
             return View(item);
         }

@@ -41,7 +41,7 @@ else
 
             <p>
                 <strong>Tax Slab:</strong>
-                @(Model.TaxSlab != null ? $"{Model.TaxSlab.FinancialYear} ({Model.TaxSlab.CessPercent}% cess)" : "N/A")
+                @(Model.TaxSlab != null ? $"{Model.TaxSlab.FinancialYear} ({Model.TaxSlab.CessPercent}% cess)" : "N/A")                
             </p>
         </div>
         <div class="col-md-6">
@@ -79,26 +79,6 @@ else
                 <div class="alert alert-warning">Leave balance info not found.</div>
             }
 
-            <h4>Payslips</h4>
-            @if (Model.SalarySlips != null && Model.SalarySlips.Any())
-            {
-                <ul>
-                    @foreach (var slip in Model.SalarySlips)
-                    {
-                        <li>
-                            @slip.Month/@slip.Year
-                            @if (!string.IsNullOrEmpty(slip.PdfUrl))
-                            {
-                               <p>-</p> <a href = "@slip.PdfUrl" target = "_blank" > Download </a>
-                                            }
-                        </li>
-                    }
-                </ul>
-            }
-            else
-            {
-                <div>No payslips yet.</div>
-            }
-        </div>
+         </div>
     </div>
 }

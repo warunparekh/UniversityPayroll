@@ -78,7 +78,6 @@ namespace UniversityPayroll.Controllers
                 leave.DecidedOn = DateTime.UtcNow;
                 await _leaveRepo.UpdateAsync(leave);
 
-                // Update leave balance!
                 var balance = await _balanceRepo.GetByEmployeeYearAsync(leave.EmployeeId, leave.StartDate.Year);
                 if (balance != null)
                 {

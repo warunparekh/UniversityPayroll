@@ -18,22 +18,19 @@ namespace UniversityPayroll.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly TaxSlabRepository _taxRepo;
         private readonly LeaveBalanceRepository _leaveBalanceRepo;
-        private readonly SalarySlipRepository _salarySlipRepo;
 
         public EmployeeController(
             EmployeeRepository employeeRepo,
             SalaryStructureRepository salaryStructRepo,
             UserManager<ApplicationUser> userManager,
             TaxSlabRepository taxRepo,
-            LeaveBalanceRepository leaveBalanceRepo,
-            SalarySlipRepository salarySlipRepo)
+            LeaveBalanceRepository leaveBalanceRepo)
         {
             _employeeRepo = employeeRepo;
             _salaryStructRepo = salaryStructRepo;
             _userManager = userManager;
             _taxRepo = taxRepo;
             _leaveBalanceRepo = leaveBalanceRepo;
-            _salarySlipRepo = salarySlipRepo;
         }
 
         [Authorize(Policy = "CrudOnlyForAdmin")]
@@ -157,15 +154,13 @@ namespace UniversityPayroll.Controllers
                 await _leaveBalanceRepo.CreateAsync(balance);
             }
 
-            var slips = await _salarySlipRepo.GetByEmployeeAsync(emp.Id);
 
             return View(new EmployeeProfileViewModel
             {
                 Employee = emp,
                 SalaryStructure = structure,
                 TaxSlab = taxSlab,
-                LeaveBalance = balance,
-                SalarySlips = slips
+                LeaveBalance = balance
             });
         }
 

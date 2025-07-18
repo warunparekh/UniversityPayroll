@@ -9,6 +9,5 @@ namespace UniversityPayroll.ViewModels
         public SalaryStructure SalaryStructure { get; set; }
         public TaxSlab TaxSlab { get; set; }
         public LeaveBalance LeaveBalance { get; set; }
-        public List<SalarySlip> SalarySlips { get; set; }
     }
 }
