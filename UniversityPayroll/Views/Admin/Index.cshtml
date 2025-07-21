@@ -30,7 +30,7 @@
                 <a asp-controller="TaxSlab" asp-action="Index" class="btn btn-sm btn-primary">Manage</a>
             </div>
         </div>
-    </div> 
+    </div>
     <div class="col-md-3">
         <div class="card mb-3 shadow-sm">
             <div class="card-body">
@@ -49,5 +49,51 @@
             </div>
         </div>
     </div>
-    
 </div>
+
+<form asp-action="RunPayroll" method="post" class="mb-3">
+    <div class="row">
+        <div class="col">
+            <select name="year" class="form-control" required>
+                @foreach (var y in ViewBag.Years)
+                {
+                    @if (y == DateTime.UtcNow.Year)
+                    {
+                        <option value="@y" selected>@y</option>
+                    }
+                    else
+                    {
+                        <option value="@y">@y</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="col">
+            <select name="month" class="form-control" required>
+                @foreach (var m in ViewBag.Months)
+                {
+                    @if (m.Value == DateTime.UtcNow.Month)
+                    {
+                        <option value="@m.Value" selected>@m.Name</option>
+                    }
+                    else
+                    {
+                        <option value="@m.Value">@m.Name</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="col">
+            <button type="submit" class="btn btn-success">Generate Salary Slips</button>
+        </div>
+    </div>
+</form>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}

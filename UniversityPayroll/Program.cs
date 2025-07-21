@@ -42,6 +42,7 @@ builder.Services
         mongoOptions.ConnectionString = builder.Configuration["MongoDbSettings:ConnectionString"];
     })
     .AddDefaultTokenProviders();
+
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
@@ -53,6 +54,7 @@ builder.Services.AddAuthorization(options =>
 });
 
 var app = builder.Build();
+await DataSeeder.SeedAsync(app);
 
 if (!app.Environment.IsDevelopment())
 {
@@ -68,7 +70,7 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Account}/{action=Login}/{id?}");
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.MapRazorPages();
 

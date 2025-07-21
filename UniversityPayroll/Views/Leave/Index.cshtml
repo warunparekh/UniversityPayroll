@@ -1,54 +1,69 @@
-﻿@model List<UniversityPayroll.Models.LeaveApplication>
+﻿@model List<UniversityPayroll.ViewModels.LeaveApplicationViewModel>
 @{
     ViewData["Title"] = "Leave Applications";
 }
 
 <h2>Leave Applications</h2>
-<p>
-    <a asp-action="Create" class="btn btn-primary">Apply for Leave</a>
-</p>
-<table class="table table-striped">
+
+@if (!User.IsInRole("Admin"))
+{
+    <p>
+        <a asp-action="Create" class="btn btn-primary">Apply for Leave</a>
+    </p>
+}
+
+<table class="table table-striped table-hover align-middle">
     <thead>
         <tr>
-            <th>Employee</th>
-            <th>Type</th>
-            <th>Start</th>
-            <th>End</th>
+            @if (User.IsInRole("Admin"))
+            {
+                <th>Employee</th>
+            }
+            <th>Leave Type</th>
+            <th>From - To</th>
             <th>Days</th>
             <th>Reason</th>
             <th>Status</th>
-            <th>Comment</th>
-            <th>Decided By</th>
-            <th>Actions</th>
+            <th>Admin Comments</th>
+            @if (User.IsInRole("Admin"))
+            {
+                <th style="width: 30%;">Actions</th>
+            }
         </tr>
     </thead>
     <tbody>
         @foreach (var leave in Model)
         {
             <tr>
-                <td>@leave.EmployeeId</td>
+                @if (User.IsInRole("Admin"))
+                {
+                    <td>@leave.EmployeeName (@leave.EmployeeCode)</td>
+                }
                 <td>@leave.LeaveType</td>
-                <td>@leave.StartDate.ToShortDateString()</td>
-                <td>@leave.EndDate.ToShortDateString()</td>
+                <td>@leave.StartDate.ToShortDateString() - @leave.EndDate.ToShortDateString()</td>
                 <td>@leave.TotalDays</td>
                 <td>@leave.Reason</td>
-                <td>@leave.Status</td>
-                <td>@leave.Comment</td>
-                <td>@leave.DecidedBy</td>
                 <td>
-                    @if (User.IsInRole("Admin"))
-                    {
-                        <div class="d-flex">
-                            <form asp-action="Approve" asp-route-id="@leave.Id" method="post" class="me-1">
-                                <button type="submit" class="btn btn-sm btn-success">Approve</button>
-                            </form>
-                            <form asp-action="Reject" asp-route-id="@leave.Id" method="post">
-                                <input type="text" name="comment" class="form-control form-control-sm mb-1" placeholder="Comment" required />
-                                <button type="submit" class="btn btn-sm btn-danger">Reject</button>
-                            </form>
-                        </div>
-                    }
+                    <span class="badge @(leave.Status == "Approved" ? "bg-success" : leave.Status == "Rejected" ? "bg-danger" : "bg-warning text-dark")">
+                        @leave.Status
+                    </span>
                 </td>
+                <td>@leave.AdminComments</td>
+                @if (User.IsInRole("Admin") && leave.Status == "Pending")
+                {
+                    <td>
+                        <form method="post" class="d-flex gap-2">
+                            <input type="hidden" name="id" value="@leave.LeaveId" />
+                            <input type="text" name="comment" class="form-control form-control-sm" placeholder="Optional comment..." />
+                            <button type="submit" formaction="/Leave/Approve" class="btn btn-sm btn-success flex-shrink-0">Approve</button>
+                            <button type="submit" formaction="/Leave/Reject" class="btn btn-sm btn-danger flex-shrink-0">Reject</button>
+                        </form>
+                    </td>
+                }
+                else if (User.IsInRole("Admin"))
+                {
+                    <td>-</td>
+                }
             </tr>
         }
     </tbody>

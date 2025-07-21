@@ -1,37 +1,70 @@
 ﻿@model UniversityPayroll.Models.LeaveApplication
 @{
-    ViewData["Title"] = "Apply Leave";
+    ViewData["Title"] = "Apply for Leave";
 }
 
 <h2>Apply for Leave</h2>
 
 <form asp-action="Create" method="post">
-    <div class="mb-3">
-        <label asp-for="LeaveType" class="form-label">Leave Type</label>
-        <select asp-for="LeaveType" class="form-select" required>
-            @foreach (var type in (List<string>)ViewBag.LeaveTypes)
-            {
-                <option value="@type">@type</option>
-            }
-        </select>
-    </div>
+    <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
-    <div class="mb-3">
-        <label asp-for="StartDate" class="form-label">Start Date</label>
-        <input asp-for="StartDate" class="form-control" type="date" required />
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label asp-for="LeaveType" class="form-label">Leave Type</label>
+            <select asp-for="LeaveType" asp-items="@ViewBag.LeaveTypes" class="form-select" required>
+                <option value="">-- Select Leave Type --</option>
+            </select>
+            <span asp-validation-for="LeaveType" class="text-danger"></span>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Total Days</label>
+            <p id="totalDaysText" class="form-control-plaintext">0</p>
+        </div>
     </div>
-    <div class="mb-3">
-        <label asp-for="EndDate" class="form-label">End Date</label>
-        <input asp-for="EndDate" class="form-control" type="date" required />
-    </div>
-    <div class="mb-3">
-        <label asp-for="TotalDays" class="form-label">Total Days</label>
-        <input asp-for="TotalDays" class="form-control" type="number" required />
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label asp-for="StartDate" class="form-label">Start Date</label>
+            <input asp-for="StartDate" class="form-control" type="date" required />
+            <span asp-validation-for="StartDate" class="text-danger"></span>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label asp-for="EndDate" class="form-label">End Date</label>
+            <input asp-for="EndDate" class="form-control" type="date" required />
+            <span asp-validation-for="EndDate" class="text-danger"></span>
+        </div>
     </div>
     <div class="mb-3">
         <label asp-for="Reason" class="form-label">Reason</label>
         <textarea asp-for="Reason" class="form-control" rows="3" required></textarea>
+        <span asp-validation-for="Reason" class="text-danger"></span>
     </div>
-    <button type="submit" class="btn btn-primary">Submit</button>
+    <button type="submit" class="btn btn-primary">Submit Application</button>
     <a asp-action="Index" class="btn btn-secondary">Cancel</a>
 </form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const startDateInput = document.getElementById('StartDate');
+            const endDateInput = document.getElementById('EndDate');
+            const totalDaysText = document.getElementById('totalDaysText');
+
+            function calculateDays() {
+                const startDate = new Date(startDateInput.value);
+                const endDate = new Date(endDateInput.value);
+
+                if (startDateInput.value && endDateInput.value && endDate >= startDate) {
+                    const timeDiff = endDate.getTime() - startDate.getTime();
+                    const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+                    totalDaysText.textContent = dayDiff;
+                } else {
+                    totalDaysText.textContent = 0;
+                }
+            }
+
+            startDateInput.addEventListener('change', calculateDays);
+            endDateInput.addEventListener('change', calculateDays);
+        });
+    </script>
+}

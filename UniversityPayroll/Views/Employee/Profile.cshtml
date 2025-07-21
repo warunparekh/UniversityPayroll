@@ -2,9 +2,7 @@
 @{
     ViewData["Title"] = "Profile";
 }
-
 <h2>My Profile</h2>
-
 @if (Model.Employee == null)
 {
     <div class="alert alert-danger">Profile not found.</div>
@@ -18,7 +16,6 @@ else
             <p><strong>Name:</strong> @Model.Employee.Name</p>
             <p><strong>Designation:</strong> @Model.Employee.Designation</p>
             <p><strong>Base Salary:</strong> @Model.Employee.BaseSalary</p>
-
             <h5>Salary Structure</h5>
             @if (Model.SalaryStructure != null)
             {
@@ -38,7 +35,6 @@ else
             {
                 <span class="text-danger">No salary structure info.</span>
             }
-
             <p>
                 <strong>Tax Slab:</strong>
                 @(Model.TaxSlab != null ? $"{Model.TaxSlab.FinancialYear} ({Model.TaxSlab.CessPercent}% cess)" : "N/A")
@@ -78,27 +74,65 @@ else
             {
                 <div class="alert alert-warning">Leave balance info not found.</div>
             }
-
-            <h4>Payslips</h4>
+            <h4>Latest Net Salary</h4>
             @if (Model.SalarySlips != null && Model.SalarySlips.Any())
             {
-                <ul>
-                    @foreach (var slip in Model.SalarySlips)
-                    {
-                        <li>
-                            @slip.Month/@slip.Year
-                            @if (!string.IsNullOrEmpty(slip.PdfUrl))
-                            {
-                               <p>-</p> <a href = "@slip.PdfUrl" target = "_blank" > Download </a>
-                                            }
-                        </li>
-                    }
-                </ul>
+                var latestSlip = Model.SalarySlips.OrderByDescending(s => s.Year).ThenByDescending(s => s.Month).First();
+                <p><strong>Net Pay:</strong> @latestSlip.NetPay</p>
+                <p><strong>Unpaid Leave Deduction:</strong> @latestSlip.UnpaidLeaveDeduction</p>
             }
             else
             {
-                <div>No payslips yet.</div>
+                <p>No payslips yet.</p>
             }
+            <h4>Payslips</h4>
+            @{
+                var years = Model.SalarySlips?.Select(s => s.Year).Distinct().OrderByDescending(y => y).ToList() ?? new List<int>();
+            }
+            <form method="get" id="payslipForm">
+                <div class="row mb-2">
+                    <div class="col">
+                        <select id="yearSelect" name="year" class="form-control" required>
+                            <option value="">Year</option>
+                            @foreach (var y in years)
+                            {
+                                <option value="@y">@y</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col">
+                        <select id="monthSelect" name="month" class="form-control" required>
+                            <option value="">Month</option>
+                            @for (int m = 1; m <= 12; m++)
+                            {
+                                <option value="@m">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col">
+                        <button type="button" class="btn btn-primary" id="downloadBtn">Download Payslip</button>
+                    </div>
+                </div>
+            </form>
+            <div id="payslipMsg"></div>
+            <script>
+                document.getElementById('downloadBtn').onclick = function () {
+                    var year = parseInt(document.getElementById('yearSelect').value);
+                    var month = parseInt(document.getElementById('monthSelect').value);
+                    if (!year || !month) {
+                        document.getElementById('payslipMsg').innerText = 'Select year and month.';
+                        return;
+                    }
+                    var slipList = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SalarySlips));
+                    var found = slipList.find(s => s.Year === year && s.Month === month);
+                    if (found && found.PdfUrl) {
+                        window.open('/Admin/DownloadSlip?file=' + encodeURIComponent(found.PdfUrl.split('/').pop()), '_blank');
+                        document.getElementById('payslipMsg').innerText = '';
+                    } else {
+                        document.getElementById('payslipMsg').innerText = 'Payslip not found for selected period.';
+                    }
+                };
+            </script>
         </div>
     </div>
 }

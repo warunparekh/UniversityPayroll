@@ -34,12 +34,21 @@ namespace UniversityPayroll.Controllers
             return View(model);
         }
 
-        [Authorize(Policy = "CrudOnlyForAdmin")]
         [HttpPost]
         public async Task<IActionResult> Create(SalaryStructure model)
         {
+            model.CreatedOn = DateTime.UtcNow;
+            model.UpdatedOn = DateTime.UtcNow;
             await _repo.CreateAsync(model);
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Edit(string id)
+        {
+            var model = await _repo.GetByIdAsync(id);
+            if (model == null) return NotFound();
+            return View(model);
         }
 
         [HttpPost]

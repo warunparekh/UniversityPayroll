@@ -1,0 +1,52 @@
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome to University Payroll</h1>
+    <p>Manage employee payroll, leaves, and salary structures efficiently.</p>
+    
+    @if (User.Identity.IsAuthenticated)
+    {
+        <div class="row justify-content-center">
+            @if (User.IsInRole("Admin"))
+            {
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Admin Dashboard</h5>
+                            <p class="card-text">Manage employees, salary structures, and payroll.</p>
+                            <a asp-controller="Admin" asp-action="Index" class="btn btn-primary">Go to Admin Dashboard</a>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Employee Profile</h5>
+                            <p class="card-text">View your profile, salary slips, and leave balance.</p>
+                            <a asp-controller="Employee" asp-action="Profile" class="btn btn-primary">View Profile</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Please Login</h5>
+                        <p class="card-text">Access your payroll information by logging in.</p>
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-primary">Login</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
