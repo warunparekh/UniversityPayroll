@@ -1,15 +1,16 @@
 ﻿@model UniversityPayroll.Models.SalaryStructure
+@using UniversityPayroll.Models
 @{
     ViewData["Title"] = "Edit Salary Structure";
 }
-
 <h2>Edit Salary Structure</h2>
-
 <form asp-action="Edit" method="post">
     <input type="hidden" asp-for="Id" />
     <div class="mb-3">
         <label asp-for="Designation" class="form-label">Designation</label>
-        <input asp-for="Designation" class="form-control" required />
+        <select asp-for="Designation" asp-items="@(new SelectList(Designations.All, Model.Designation))" class="form-select" required>
+            <option value="">-- select --</option>
+        </select>
     </div>
     <div class="mb-3">
         <label asp-for="Allowances.DaPercent" class="form-label">DA %</label>

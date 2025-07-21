@@ -47,12 +47,12 @@ namespace UniversityPayroll.Controllers
                 HttpContext.RequestServices.GetService(typeof(Microsoft.Extensions.Options.IOptions<MongoDbSettings>)) as Microsoft.Extensions.Options.IOptions<MongoDbSettings>
             ));
             var ent = await entRepo.GetByDesignationAsync(emp.Designation);
+            ViewBag.LeaveTypes = ent?.Entitlements?.Keys?.ToList() ?? new List<string>();
 
-            ViewBag.LeaveTypes = ent?.Entitlements?.Keys?.ToList() ?? new List<string> { "CL", "EL", "HPL" };
+            ViewBag.LeaveTypes = ent?.Entitlements?.Keys?.ToList() ?? new System.Collections.Generic.List<string> { "CL", "EL", "HPL" };
             ViewBag.EmployeeCode = emp.EmployeeCode;
             return View();
         }
-
 
         [HttpPost]
         public async Task<IActionResult> Create(LeaveApplication model)
@@ -95,19 +95,38 @@ namespace UniversityPayroll.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-
-        [HttpPost]
         [Authorize(Policy = "AdminOnly")]
+        [HttpPost]
         public async Task<IActionResult> Reject(string id, string comment)
         {
             var leave = await _leaveRepo.GetByIdAsync(id);
             if (leave != null)
             {
+                var wasApproved = leave.Status == "Approved";
                 leave.Status = "Rejected";
                 leave.Comment = comment;
                 leave.DecidedBy = User.Identity.Name;
                 leave.DecidedOn = DateTime.UtcNow;
                 await _leaveRepo.UpdateAsync(leave);
+
+                if (wasApproved)
+                {
+                    var balance = await _balanceRepo.GetByEmployeeYearAsync(leave.EmployeeId, leave.StartDate.Year);
+                    if (balance != null)
+                    {
+                        if (!balance.Used.ContainsKey(leave.LeaveType))
+                            balance.Used[leave.LeaveType] = 0;
+                        if (!balance.Balance.ContainsKey(leave.LeaveType))
+                            balance.Balance[leave.LeaveType] = balance.Entitlements[leave.LeaveType];
+
+                        balance.Used[leave.LeaveType] -= leave.TotalDays;
+                        if (balance.Used[leave.LeaveType] < 0)
+                            balance.Used[leave.LeaveType] = 0;
+                        balance.Balance[leave.LeaveType] = balance.Entitlements[leave.LeaveType] - balance.Used[leave.LeaveType];
+                        balance.UpdatedOn = DateTime.UtcNow;
+                        await _balanceRepo.UpdateAsync(balance);
+                    }
+                }
             }
             return RedirectToAction(nameof(Index));
         }

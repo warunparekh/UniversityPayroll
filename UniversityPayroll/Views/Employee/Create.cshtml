@@ -3,9 +3,7 @@
 @{
     ViewData["Title"] = "Add Employee";
 }
-
 <h2>Add Employee</h2>
-
 <form asp-action="Create" method="post">
     <div class="mb-3">
         <label asp-for="EmployeeCode" class="form-label">Code</label>
@@ -17,9 +15,14 @@
     </div>
     <div class="mb-3">
         <label asp-for="Designation" class="form-label">Designation</label>
-        <select asp-for="Designation" asp-items="ViewBag.Designations"
-                class="form-select" required>
+        <select asp-for="Designation" asp-items="@(new SelectList(UniversityPayroll.Models.Designations.All))" class="form-select" required>
             <option value="">-- select --</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label asp-for="TaxSlabId" class="form-label">Tax Slab</label>
+        <select asp-for="TaxSlabId" asp-items="ViewBag.TaxSlabs" class="form-select">
+            <option value="">-- Select Tax Slab --</option>
         </select>
     </div>
     <div class="mb-3">

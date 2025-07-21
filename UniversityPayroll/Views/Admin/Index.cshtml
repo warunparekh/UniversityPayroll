@@ -8,6 +8,7 @@
         <div class="card mb-3">
             <div class="card-body">
                 <h5 class="card-title">Employees</h5>
+                <p class="card-text">Add or remove employees.</p>
                 <a asp-controller="Employee" asp-action="Index" class="btn btn-sm btn-primary">Manage</a>
             </div>
         </div>
@@ -16,6 +17,7 @@
         <div class="card mb-3">
             <div class="card-body">
                 <h5 class="card-title">Salary Structures</h5>
+                <p class="card-text">Add or remove salary structure.</p>
                 <a asp-controller="SalaryStructure" asp-action="Index" class="btn btn-sm btn-primary">Manage</a>
             </div>
         </div>
@@ -24,7 +26,26 @@
         <div class="card mb-3">
             <div class="card-body">
                 <h5 class="card-title">Tax Slabs</h5>
+                <p class="card-text">Add or remove Tax Slabs.</p>
                 <a asp-controller="TaxSlab" asp-action="Index" class="btn btn-sm btn-primary">Manage</a>
+            </div>
+        </div>
+    </div> 
+    <div class="col-md-3">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Manage Leave Types</h5>
+                <p class="card-text">Add or remove leave types.</p>
+                <a asp-controller="LeaveType" asp-action="Index" class="btn btn-primary">Go</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Leave Entitlements</h5>
+                <p class="card-text">Set leave entitlements per designation.</p>
+                <a asp-controller="LeaveEntitlement" asp-action="Index" class="btn btn-primary">Go</a>
             </div>
         </div>
     </div>

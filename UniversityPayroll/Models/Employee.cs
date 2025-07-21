@@ -10,6 +10,8 @@ namespace UniversityPayroll.Models
         [BsonRepresentation(BsonType.ObjectId)]
         public string Id { get; set; }
 
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string? TaxSlabId { get; set; }
         public string EmployeeCode { get; set; }
         public string Name { get; set; }
         public string Designation { get; set; }
@@ -19,7 +21,6 @@ namespace UniversityPayroll.Models
         [BsonRepresentation(BsonType.ObjectId)]
         public string IdentityUserId { get; set; }
 
-        [BsonRepresentation(BsonType.ObjectId)]
-        public string TaxSlabId { get; set; }
+        
     }
 }

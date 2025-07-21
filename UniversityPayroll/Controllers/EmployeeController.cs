@@ -37,13 +37,6 @@ namespace UniversityPayroll.Controllers
         }
 
         [Authorize(Policy = "CrudOnlyForAdmin")]
-        public async Task<IActionResult> Index()
-        {
-            var list = await _employeeRepo.GetAllAsync();
-            return View(list);
-        }
-
-        [Authorize(Policy = "CrudOnlyForAdmin")]
         [HttpGet]
         public async Task<IActionResult> Create()
         {
@@ -53,6 +46,10 @@ namespace UniversityPayroll.Controllers
                 .OrderBy(d => d)
                 .ToList();
             ViewBag.Designations = new SelectList(designations);
+
+            var taxSlabs = await _taxRepo.GetAllAsync();
+            ViewBag.TaxSlabs = new SelectList(taxSlabs, "Id", "FinancialYear");
+
             return View();
         }
 
@@ -71,6 +68,10 @@ namespace UniversityPayroll.Controllers
                     .OrderBy(d => d)
                     .ToList();
                 ViewBag.Designations = new SelectList(designations, model.Designation);
+
+                var taxSlabs = await _taxRepo.GetAllAsync();
+                ViewBag.TaxSlabs = new SelectList(taxSlabs, "Id", "FinancialYear", model.TaxSlabId);
+
                 return View(model);
             }
 
@@ -93,6 +94,9 @@ namespace UniversityPayroll.Controllers
                 .ToList();
             ViewBag.Designations = new SelectList(designations, emp.Designation);
 
+            var taxSlabs = await _taxRepo.GetAllAsync();
+            ViewBag.TaxSlabs = new SelectList(taxSlabs, "Id", "FinancialYear", emp.TaxSlabId);
+
             return View(emp);
         }
 
@@ -103,6 +107,14 @@ namespace UniversityPayroll.Controllers
             await _employeeRepo.UpdateAsync(model);
             return RedirectToAction(nameof(Index));
         }
+
+        [Authorize(Policy = "CrudOnlyForAdmin")]
+        public async Task<IActionResult> Index()
+        {
+            var list = await _employeeRepo.GetAllAsync();
+            return View(list);
+        }
+
 
         [Authorize(Policy = "CrudOnlyForAdmin")]
         [HttpPost]
@@ -124,9 +136,15 @@ namespace UniversityPayroll.Controllers
         public async Task<IActionResult> Profile()
         {
             var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return RedirectToAction("Login", "Account");
+
             var emp = await _employeeRepo.GetByUserIdAsync(user.Id.ToString());
+            if (emp == null)
+                return View(new EmployeeProfileViewModel());
+
             var structure = await _salaryStructRepo.GetByDesignationAsync(emp.Designation);
-            var taxSlab = emp.TaxSlabId != null ? await _taxRepo.GetByIdAsync(emp.TaxSlabId) : null;
+            var taxSlab = !string.IsNullOrEmpty(emp.TaxSlabId) ? await _taxRepo.GetByIdAsync(emp.TaxSlabId) : null;
             var year = DateTime.UtcNow.Year;
 
             var entRepo = new LeaveEntitlementRepository(new MongoDbContext(
@@ -135,14 +153,9 @@ namespace UniversityPayroll.Controllers
             var ent = await entRepo.GetByDesignationAsync(emp.Designation);
 
             var balance = await _leaveBalanceRepo.GetByEmployeeYearAsync(emp.Id, year);
-            if (balance == null)
+            if (balance == null && ent != null)
             {
-                var entitlements = ent?.Entitlements ?? new System.Collections.Generic.Dictionary<string, int>
-                {
-                    ["CL"] = 12,
-                    ["EL"] = 10,
-                    ["HPL"] = 20
-                };
+                var entitlements = ent.Entitlements;
                 var used = entitlements.ToDictionary(x => x.Key, x => 0);
                 balance = new LeaveBalance
                 {
@@ -168,6 +181,5 @@ namespace UniversityPayroll.Controllers
                 SalarySlips = slips
             });
         }
-
     }
 }
