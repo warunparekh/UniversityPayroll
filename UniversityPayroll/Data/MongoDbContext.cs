@@ -25,9 +25,7 @@ namespace UniversityPayroll.Data
             _db.GetCollection<LeaveBalance>("LeaveBalances");
         public IMongoCollection<SalarySlip> SalarySlips =>
             _db.GetCollection<SalarySlip>("SalarySlips");
-        public IMongoCollection<PayRun> PayRuns =>
-            _db.GetCollection<PayRun>("PayRuns");
-        // new collection for entitlements
+       
         public IMongoCollection<LeaveEntitlement> LeaveEntitlements =>
             _db.GetCollection<LeaveEntitlement>("LeaveEntitlements");
     }
