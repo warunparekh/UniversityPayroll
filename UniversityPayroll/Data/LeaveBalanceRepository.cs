@@ -33,14 +33,14 @@ namespace UniversityPayroll.Data
         public async Task DeleteAsync(string id) =>
             await _col.DeleteOneAsync(x => x.Id == id);
 
-        public async Task IncrementUsedAsync(string empId, string leaveType, int days)
+        public async Task RemoveLeaveTypeFromAll(string leaveType)
         {
-            var filter = Builders<LeaveBalance>.Filter.Where(x =>
-                x.EmployeeId == empId && x.Year == x.Year);
-            var update = Builders<LeaveBalance>.Update.Inc($"Used.{leaveType}", days)
-                                                    .Inc($"Balance.{leaveType}", -days)
-                                                    .Set("UpdatedOn", System.DateTime.UtcNow);
-            await _col.UpdateOneAsync(filter, update);
+            var filter = Builders<LeaveBalance>.Filter.Exists($"Entitlements.{leaveType}");
+            var update = Builders<LeaveBalance>.Update
+                .Unset($"Entitlements.{leaveType}")
+                .Unset($"Used.{leaveType}")
+                .Unset($"Balance.{leaveType}");
+            await _col.UpdateManyAsync(filter, update);
         }
     }
 }

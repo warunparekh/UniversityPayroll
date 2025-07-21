@@ -22,10 +22,10 @@
             {
                 <div class="row mb-2">
                     <div class="col">
-                        <input name="Entitlements[@type.Name].Key" value="@type.Name" class="form-control" readonly />
+                        <input type="text" class="form-control" value="@type.Name" readonly />
                     </div>
                     <div class="col">
-                        <input name="Entitlements[@type.Name].Value" value="0" class="form-control" type="number" />
+                        <input name="Entitlements[@type.Name]" value="@(Model.Entitlements != null && Model.Entitlements.ContainsKey(type.Name) ? Model.Entitlements[type.Name] : 0)" class="form-control" type="number" />
                     </div>
                 </div>
             }

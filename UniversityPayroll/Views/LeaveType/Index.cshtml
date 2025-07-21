@@ -1,6 +1,7 @@
 ﻿@model List<LeaveType>
 @{
     ViewData["Title"] = "Leave Types";
+    var inUse = (Dictionary<string, bool>)ViewBag.InUse;
 }
 <h2>Leave Types</h2>
 <p><a asp-action="Create" class="btn btn-primary">Add Leave Type</a></p>
@@ -12,17 +13,24 @@
         </tr>
     </thead>
     <tbody>
-    @foreach (var t in Model)
-    {
-        <tr>
-            <td>@t.Name</td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@t.Id" class="btn btn-sm btn-secondary">Edit</a>
-                <form asp-action="Delete" asp-route-id="@t.Id" method="post" style="display:inline">
-                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this leave type?');">Delete</button>
-                </form>
-            </td>
-        </tr>
-    }
+        @foreach (var t in Model)
+        {
+            <tr>
+                <td>@t.Name</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@t.Id" class="btn btn-sm btn-secondary">Edit</a>
+                    @if (inUse[t.Id])
+                    {
+                        <button class="btn btn-sm btn-danger" disabled title="In use in entitlements or balances">Delete</button>
+                    }
+                    else
+                    {
+                        <form asp-action="Delete" asp-route-id="@t.Id" method="post" style="display:inline">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this leave type?');">Delete</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
     </tbody>
 </table>

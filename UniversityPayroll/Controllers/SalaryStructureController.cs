@@ -39,28 +39,8 @@ namespace UniversityPayroll.Controllers
         public async Task<IActionResult> Create(SalaryStructure model)
         {
             await _repo.CreateAsync(model);
-
-            var leaveEntRepo = new LeaveEntitlementRepository(new MongoDbContext(
-                HttpContext.RequestServices.GetService(typeof(Microsoft.Extensions.Options.IOptions<MongoDbSettings>)) as Microsoft.Extensions.Options.IOptions<MongoDbSettings>
-            ));
-            var ent = await leaveEntRepo.GetByDesignationAsync(model.Designation);
-            if (ent == null)
-            {
-                await leaveEntRepo.CreateAsync(new LeaveEntitlement
-                {
-                    Designation = model.Designation,
-                    Entitlements = new System.Collections.Generic.Dictionary<string, int>
-                    {
-                        ["CL"] = 12,
-                        ["EL"] = 10,
-                        ["HPL"] = 20
-                    }
-                });
-            }
-
             return RedirectToAction(nameof(Index));
         }
-
 
         [HttpPost]
         public async Task<IActionResult> Edit(SalaryStructure model)

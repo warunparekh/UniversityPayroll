@@ -27,5 +27,12 @@ namespace UniversityPayroll.Data
 
         public async Task DeleteAsync(string id) =>
             await _col.DeleteOneAsync(x => x.Id == id);
+
+        public async Task RemoveLeaveTypeFromAll(string leaveType)
+        {
+            var filter = Builders<LeaveEntitlement>.Filter.Exists($"Entitlements.{leaveType}");
+            var update = Builders<LeaveEntitlement>.Update.Unset($"Entitlements.{leaveType}");
+            await _col.UpdateManyAsync(filter, update);
+        }
     }
 }

@@ -1,6 +1,7 @@
 ﻿@model UniversityPayroll.Models.LeaveEntitlement
 @{
     ViewData["Title"] = "Edit Leave Entitlement";
+    var leaveTypes = (List<LeaveType>)ViewBag.LeaveTypes;
 }
 <h2>Edit Leave Entitlement</h2>
 <form asp-action="Edit" method="post">
@@ -22,14 +23,14 @@
                 <tr><th>Type</th><th>Count</th></tr>
             </thead>
             <tbody>
-                @foreach (var kv in Model.Entitlements)
+                @foreach (var type in leaveTypes)
                 {
                     <tr>
                         <td>
-                            <input name="Entitlements[@kv.Key].Key" value="@kv.Key" class="form-control" readonly />
+                            <input type="text" class="form-control" value="@type.Name" readonly />
                         </td>
                         <td>
-                            <input name="Entitlements[@kv.Key].Value" value="@kv.Value" class="form-control" type="number" />
+                            <input name="Entitlements[@type.Name]" value="@(Model.Entitlements != null && Model.Entitlements.ContainsKey(type.Name) ? Model.Entitlements[type.Name] : 0)" class="form-control" type="number" />
                         </td>
                     </tr>
                 }

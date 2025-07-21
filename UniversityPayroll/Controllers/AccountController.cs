@@ -32,8 +32,6 @@ public class AccountController : Controller
             {
                 if (await _userManager.IsInRoleAsync(user, "Admin"))
                     return RedirectToAction("Index", "Admin");
-                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                    return Redirect(returnUrl);
                 return RedirectToAction("Profile", "Employee");
             }
         }

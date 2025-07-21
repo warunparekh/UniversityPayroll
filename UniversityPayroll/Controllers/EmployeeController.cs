@@ -153,21 +153,45 @@ namespace UniversityPayroll.Controllers
             var ent = await entRepo.GetByDesignationAsync(emp.Designation);
 
             var balance = await _leaveBalanceRepo.GetByEmployeeYearAsync(emp.Id, year);
-            if (balance == null && ent != null)
+
+            if (ent != null)
             {
                 var entitlements = ent.Entitlements;
-                var used = entitlements.ToDictionary(x => x.Key, x => 0);
-                balance = new LeaveBalance
+                if (balance == null)
                 {
-                    EmployeeId = emp.Id,
-                    Year = year,
-                    Entitlements = entitlements,
-                    Used = used,
-                    Balance = new System.Collections.Generic.Dictionary<string, int>(entitlements),
-                    LastAccrualDate = DateTime.UtcNow,
-                    UpdatedOn = DateTime.UtcNow
-                };
-                await _leaveBalanceRepo.CreateAsync(balance);
+                    var used = entitlements.ToDictionary(x => x.Key, x => 0);
+                    balance = new LeaveBalance
+                    {
+                        EmployeeId = emp.Id,
+                        Year = year,
+                        Entitlements = new Dictionary<string, int>(entitlements),
+                        Used = used,
+                        Balance = new Dictionary<string, int>(entitlements),
+                        LastAccrualDate = DateTime.UtcNow,
+                        UpdatedOn = DateTime.UtcNow
+                    };
+                    await _leaveBalanceRepo.CreateAsync(balance);
+                }
+                else
+                {
+                    foreach (var kv in entitlements)
+                    {
+                        if (!balance.Entitlements.ContainsKey(kv.Key))
+                        {
+                            balance.Entitlements[kv.Key] = kv.Value;
+                            balance.Used[kv.Key] = 0;
+                            balance.Balance[kv.Key] = kv.Value;
+                        }
+                    }
+                    var toRemove = balance.Entitlements.Keys.Except(entitlements.Keys).ToList();
+                    foreach (var key in toRemove)
+                    {
+                        balance.Entitlements.Remove(key);
+                        balance.Used.Remove(key);
+                        balance.Balance.Remove(key);
+                    }
+                    await _leaveBalanceRepo.UpdateAsync(balance);
+                }
             }
 
             var slips = await _salarySlipRepo.GetByEmployeeAsync(emp.Id);

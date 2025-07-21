@@ -38,6 +38,8 @@ namespace UniversityPayroll.Controllers
             return View(leaves);
         }
 
+        
+
         [HttpGet]
         public async Task<IActionResult> Create()
         {
@@ -48,8 +50,6 @@ namespace UniversityPayroll.Controllers
             ));
             var ent = await entRepo.GetByDesignationAsync(emp.Designation);
             ViewBag.LeaveTypes = ent?.Entitlements?.Keys?.ToList() ?? new List<string>();
-
-            ViewBag.LeaveTypes = ent?.Entitlements?.Keys?.ToList() ?? new System.Collections.Generic.List<string> { "CL", "EL", "HPL" };
             ViewBag.EmployeeCode = emp.EmployeeCode;
             return View();
         }

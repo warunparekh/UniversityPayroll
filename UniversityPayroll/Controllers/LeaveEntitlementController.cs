@@ -34,6 +34,10 @@ public class LeaveEntitlementController : Controller
     [HttpPost]
     public async Task<IActionResult> Create(LeaveEntitlement model)
     {
+        var leaveTypes = (await _typeRepo.GetAllAsync()).Select(t => t.Name).ToHashSet();
+        model.Entitlements = model.Entitlements
+            .Where(kv => leaveTypes.Contains(kv.Key))
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
         await _repo.CreateAsync(model);
         return RedirectToAction(nameof(Index));
     }
@@ -51,6 +55,10 @@ public class LeaveEntitlementController : Controller
     [HttpPost]
     public async Task<IActionResult> Edit(LeaveEntitlement model)
     {
+        var leaveTypes = (await _typeRepo.GetAllAsync()).Select(t => t.Name).ToHashSet();
+        model.Entitlements = model.Entitlements
+            .Where(kv => leaveTypes.Contains(kv.Key))
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
         await _repo.UpdateAsync(model);
         return RedirectToAction(nameof(Index));
     }
