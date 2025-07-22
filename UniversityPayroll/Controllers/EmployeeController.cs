@@ -270,21 +270,11 @@ namespace UniversityPayroll.Controllers
             if (user == null) return RedirectToAction("Login", "Account");
 
             var employee = await _employeeRepo.GetByUserIdAsync(user.Id.ToString());
-            if (employee == null)
-            {
-                TempData["Error"] = "Employee profile not found.";
-                return RedirectToAction("Profile");
-            }
+            
 
             model.EmployeeId = employee.Id;
             model.Status = "Pending";
             model.AppliedOn = DateTime.UtcNow;
-
-            if (!ModelState.IsValid)
-            {
-                TempData["Error"] = "Invalid data submitted. Please check your inputs.";
-                return RedirectToAction("Profile");
-            }
 
             int workingDays = CalculateWorkingDays(model.StartDate, model.EndDate);
             decimal requestedDays = model.IsHalfDay ? 0.5m : workingDays;
