@@ -40,8 +40,69 @@ public class AdminController : Controller
         _taxSlabRepo = taxSlabRepo;
         _env = env;
 
-        // Required for QuestPDF
         QuestPDF.Settings.License = LicenseType.Community;
+    }
+
+    private decimal CalculateUnpaidLeaveDeduction(decimal baseSalary, List<LeaveApplication> unpaidLeaves, int year, int month)
+    {
+        decimal totalDeduction = 0;
+        int workingDaysInMonth = GetWorkingDaysInMonth(year, month);
+        decimal perDaySalary = baseSalary / workingDaysInMonth;
+
+        foreach (var leave in unpaidLeaves.Where(l => l.Status == "Approved"))
+        {
+            decimal leaveDaysInMonth = 0;
+
+            if (leave.StartDate.Year == year && leave.StartDate.Month == month)
+            {
+                DateTime monthEnd = new DateTime(year, month, DateTime.DaysInMonth(year, month));
+                DateTime leaveEndInMonth = leave.EndDate > monthEnd ? monthEnd : leave.EndDate;
+
+                for (DateTime date = leave.StartDate; date <= leaveEndInMonth; date = date.AddDays(1))
+                {
+                    if (date.DayOfWeek != DayOfWeek.Sunday)
+                    {
+                        leaveDaysInMonth += leave.IsHalfDay ? 0.5m : 1m;
+                        if (leave.IsHalfDay) break;
+                    }
+                }
+            }
+            else if (leave.StartDate < new DateTime(year, month, 1) && leave.EndDate >= new DateTime(year, month, 1))
+            {
+                DateTime monthStart = new DateTime(year, month, 1);
+                DateTime monthEnd = new DateTime(year, month, DateTime.DaysInMonth(year, month));
+                DateTime leaveEndInMonth = leave.EndDate > monthEnd ? monthEnd : leave.EndDate;
+
+                for (DateTime date = monthStart; date <= leaveEndInMonth; date = date.AddDays(1))
+                {
+                    if (date.DayOfWeek != DayOfWeek.Sunday)
+                    {
+                        leaveDaysInMonth += 1m;
+                    }
+                }
+            }
+
+            totalDeduction += leaveDaysInMonth * perDaySalary;
+        }
+
+        return Math.Round(totalDeduction, 2);
+    }
+
+    private int GetWorkingDaysInMonth(int year, int month)
+    {
+        int workingDays = 0;
+        int daysInMonth = DateTime.DaysInMonth(year, month);
+
+        for (int day = 1; day <= daysInMonth; day++)
+        {
+            DateTime date = new DateTime(year, month, day);
+            if (date.DayOfWeek != DayOfWeek.Sunday)
+            {
+                workingDays++;
+            }
+        }
+
+        return workingDays;
     }
 
     public async Task<IActionResult> Index()
@@ -66,13 +127,12 @@ public class AdminController : Controller
         {
             var structure = await _structureRepo.GetByDesignationAsync(emp.Designation);
             if (structure == null) continue;
-            int daysInMonth = DateTime.DaysInMonth(year, month);
-            decimal perDaySalary = emp.BaseSalary / daysInMonth;
+
             var leaves = await _leaveRepo.GetByEmployeeAsync(emp.Id);
-            int unpaidDays = leaves
-                .Where(l => l.LeaveType == "Unpaid" && l.Status == "Approved" && l.StartDate.Year == year && l.StartDate.Month == month)
-                .Sum(l => l.TotalDays);
-            decimal unpaidDeduction = unpaidDays * perDaySalary;
+            var unpaidLeaves = leaves.Where(l => l.LeaveType == "Unpaid").ToList();
+
+            decimal unpaidDeduction = CalculateUnpaidLeaveDeduction(emp.BaseSalary, unpaidLeaves, year, month);
+
             decimal da = emp.BaseSalary * (decimal)(structure.Allowances?.DaPercent ?? 0) / 100m;
             decimal hra = emp.BaseSalary * (decimal)(structure.Allowances?.HraPercent ?? 0) / 100m;
             decimal otherAllowances = 0;
@@ -113,6 +173,7 @@ public class AdminController : Controller
             decimal otherDeductions = 0;
             decimal totalDeductions = pfEmp + tax + otherDeductions + unpaidDeduction;
             decimal netPay = gross - totalDeductions;
+
             var slip = new SalarySlip
             {
                 EmployeeId = emp.Id,
@@ -175,11 +236,16 @@ public class AdminController : Controller
                         });
                         column.Item().Text($"DA: {slip.Da:N2}");
                         column.Item().Text($"HRA: {slip.Hra:N2}");
+                        column.Item().Text($"Other Allowances: {slip.OtherAllowances:N2}");
                         column.Item().Text($"Gross Earnings: {slip.GrossEarnings:N2}").Bold();
 
                         column.Item().PaddingTop(10).Text("Deductions").SemiBold().FontSize(14);
                         column.Item().Text($"PF Employee: {slip.PfEmployee:N2}");
                         column.Item().Text($"Tax: {slip.Tax:N2}");
+                        if (slip.UnpaidLeaveDeduction > 0)
+                        {
+                            column.Item().Text($"Unpaid Leave Deduction: {slip.UnpaidLeaveDeduction:N2}").FontColor(Colors.Red.Medium);
+                        }
                         column.Item().Text($"Total Deductions: {slip.TotalDeductions:N2}").Bold();
 
                         column.Item().PaddingTop(15).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);

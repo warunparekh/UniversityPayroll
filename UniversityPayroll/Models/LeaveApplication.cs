@@ -1,10 +1,19 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using System.ComponentModel.DataAnnotations;
-using System;
 
 namespace UniversityPayroll.Models
 {
+    public class EndDateAfterStartDateAttribute : ValidationAttribute
+    {
+        public override bool IsValid(object value)
+        {
+            var model = value as LeaveApplication;
+            if (model == null) return true;
+            return model.EndDate >= model.StartDate;
+        }
+    }
+
     [BsonIgnoreExtraElements]
     public class LeaveApplication
     {
@@ -27,7 +36,9 @@ namespace UniversityPayroll.Models
         [EndDateAfterStartDate(ErrorMessage = "End date must be after start date.")]
         public DateTime EndDate { get; set; } = DateTime.UtcNow.Date;
 
-        public int TotalDays { get; set; }
+        public decimal TotalDays { get; set; }
+
+        public bool IsHalfDay { get; set; } = false;
 
         [Required]
         public string Reason { get; set; } = string.Empty;
@@ -41,18 +52,5 @@ namespace UniversityPayroll.Models
         public string? DecidedBy { get; set; }
 
         public DateTime? DecidedOn { get; set; }
-    }
-
-    public class EndDateAfterStartDateAttribute : ValidationAttribute
-    {
-        protected override ValidationResult IsValid(object value, ValidationContext validationContext)
-        {
-            var model = (LeaveApplication)validationContext.ObjectInstance;
-            if (model.EndDate < model.StartDate)
-            {
-                return new ValidationResult(ErrorMessage);
-            }
-            return ValidationResult.Success;
-        }
     }
 }

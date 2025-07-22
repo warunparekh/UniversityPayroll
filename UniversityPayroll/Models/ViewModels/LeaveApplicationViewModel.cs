@@ -1,7 +1,4 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
-
-namespace UniversityPayroll.ViewModels
+﻿namespace UniversityPayroll.ViewModels
 {
     public class LeaveApplicationViewModel
     {
@@ -9,16 +6,12 @@ namespace UniversityPayroll.ViewModels
         public string EmployeeName { get; set; } = string.Empty;
         public string EmployeeCode { get; set; } = string.Empty;
         public string LeaveType { get; set; } = string.Empty;
-
-        [DataType(DataType.Date)]
         public DateTime StartDate { get; set; }
-
-        [DataType(DataType.Date)]
         public DateTime EndDate { get; set; }
-
-        public int TotalDays { get; set; }
+        public decimal TotalDays { get; set; }
+        public bool IsHalfDay { get; set; }
         public string Reason { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
-        public string? AdminComments { get; set; }
+        public string AdminComments { get; set; } = string.Empty;
     }
 }

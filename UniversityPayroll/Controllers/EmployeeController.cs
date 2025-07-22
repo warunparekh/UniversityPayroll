@@ -19,6 +19,9 @@ namespace UniversityPayroll.Controllers
         private readonly TaxSlabRepository _taxRepo;
         private readonly LeaveBalanceRepository _leaveBalanceRepo;
         private readonly SalarySlipRepository _salarySlipRepo;
+        private readonly LeaveRepository _leaveRepo;
+        private readonly LeaveEntitlementRepository _entitlementRepo;
+        private readonly DesignationRepository _designationRepo;
 
         public EmployeeController(
             EmployeeRepository employeeRepo,
@@ -26,7 +29,10 @@ namespace UniversityPayroll.Controllers
             UserManager<ApplicationUser> userManager,
             TaxSlabRepository taxRepo,
             LeaveBalanceRepository leaveBalanceRepo,
-            SalarySlipRepository salarySlipRepo)
+            SalarySlipRepository salarySlipRepo,
+            LeaveRepository leaveRepo,
+            LeaveEntitlementRepository entitlementRepo,
+            DesignationRepository designationRepo)
         {
             _employeeRepo = employeeRepo;
             _salaryStructRepo = salaryStructRepo;
@@ -34,18 +40,17 @@ namespace UniversityPayroll.Controllers
             _taxRepo = taxRepo;
             _leaveBalanceRepo = leaveBalanceRepo;
             _salarySlipRepo = salarySlipRepo;
+            _leaveRepo = leaveRepo;
+            _entitlementRepo = entitlementRepo;
+            _designationRepo = designationRepo;
         }
 
         [Authorize(Policy = "CrudOnlyForAdmin")]
         [HttpGet]
         public async Task<IActionResult> Create()
         {
-            var designations = (await _salaryStructRepo.GetAllAsync())
-                .Select(s => s.Designation)
-                .Distinct()
-                .OrderBy(d => d)
-                .ToList();
-            ViewBag.Designations = new SelectList(designations);
+            var designations = await _designationRepo.GetActiveAsync();
+            ViewBag.Designations = new SelectList(designations, "Name", "Name");
 
             var taxSlabs = await _taxRepo.GetAllAsync();
             ViewBag.TaxSlabs = new SelectList(taxSlabs, "Id", "FinancialYear");
@@ -57,27 +62,30 @@ namespace UniversityPayroll.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(Employee model, string email, string password)
         {
+            
             var user = new ApplicationUser { UserName = email, Email = email };
             var result = await _userManager.CreateAsync(user, password);
             if (!result.Succeeded)
             {
                 ModelState.AddModelError("", result.Errors.First().Description);
-                var designations = (await _salaryStructRepo.GetAllAsync())
-                    .Select(s => s.Designation)
-                    .Distinct()
-                    .OrderBy(d => d)
-                    .ToList();
-                ViewBag.Designations = new SelectList(designations, model.Designation);
-
-                var taxSlabs = await _taxRepo.GetAllAsync();
-                ViewBag.TaxSlabs = new SelectList(taxSlabs, "Id", "FinancialYear", model.TaxSlabId);
-
-                return View(model);
             }
+            else
+            {
+                model.IdentityUserId = user.Id.ToString();
+                await _employeeRepo.CreateAsync(model);
+                await EnsureSalaryStructureExists(model.Designation);
+                await EnsureLeaveEntitlementExists(model.Designation);
+                return RedirectToAction(nameof(Index));
+            }
+            
 
-            model.IdentityUserId = user.Id.ToString();
-            await _employeeRepo.CreateAsync(model);
-            return RedirectToAction(nameof(Index));
+            var designations = await _designationRepo.GetActiveAsync();
+            ViewBag.Designations = new SelectList(designations, "Name", "Name", model.Designation);
+
+            var taxSlabs = await _taxRepo.GetAllAsync();
+            ViewBag.TaxSlabs = new SelectList(taxSlabs, "Id", "FinancialYear", model.TaxSlabId);
+
+            return View(model);
         }
 
         [Authorize(Policy = "CrudOnlyForAdmin")]
@@ -87,12 +95,8 @@ namespace UniversityPayroll.Controllers
             var emp = await _employeeRepo.GetByIdAsync(id);
             if (emp == null) return NotFound();
 
-            var designations = (await _salaryStructRepo.GetAllAsync())
-                .Select(s => s.Designation)
-                .Distinct()
-                .OrderBy(d => d)
-                .ToList();
-            ViewBag.Designations = new SelectList(designations, emp.Designation);
+            var designations = await _designationRepo.GetActiveAsync();
+            ViewBag.Designations = new SelectList(designations, "Name", "Name", emp.Designation);
 
             var taxSlabs = await _taxRepo.GetAllAsync();
             ViewBag.TaxSlabs = new SelectList(taxSlabs, "Id", "FinancialYear", emp.TaxSlabId);
@@ -104,8 +108,21 @@ namespace UniversityPayroll.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(Employee model)
         {
-            await _employeeRepo.UpdateAsync(model);
-            return RedirectToAction(nameof(Index));
+            if (ModelState.IsValid)
+            {
+                await _employeeRepo.UpdateAsync(model);
+                await EnsureSalaryStructureExists(model.Designation);
+                await EnsureLeaveEntitlementExists(model.Designation);
+                return RedirectToAction(nameof(Index));
+            }
+
+            var designations = await _designationRepo.GetActiveAsync();
+            ViewBag.Designations = new SelectList(designations, "Name", "Name", model.Designation);
+
+            var taxSlabs = await _taxRepo.GetAllAsync();
+            ViewBag.TaxSlabs = new SelectList(taxSlabs, "Id", "FinancialYear", model.TaxSlabId);
+
+            return View(model);
         }
 
         [Authorize(Policy = "CrudOnlyForAdmin")]
@@ -114,7 +131,6 @@ namespace UniversityPayroll.Controllers
             var list = await _employeeRepo.GetAllAsync();
             return View(list);
         }
-
 
         [Authorize(Policy = "CrudOnlyForAdmin")]
         [HttpPost]
@@ -131,7 +147,6 @@ namespace UniversityPayroll.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-
         [Authorize]
         public async Task<IActionResult> Profile()
         {
@@ -143,18 +158,14 @@ namespace UniversityPayroll.Controllers
             if (emp == null)
                 return View(new EmployeeProfileViewModel());
 
-            var structure = await _salaryStructRepo.GetByDesignationAsync(emp.Designation);
+            var structure = await EnsureSalaryStructureExists(emp.Designation);
             var taxSlab = !string.IsNullOrEmpty(emp.TaxSlabId) ? await _taxRepo.GetByIdAsync(emp.TaxSlabId) : null;
             var year = DateTime.UtcNow.Year;
 
-            var entRepo = new LeaveEntitlementRepository(new MongoDbContext(
-                HttpContext.RequestServices.GetService(typeof(Microsoft.Extensions.Options.IOptions<MongoDbSettings>)) as Microsoft.Extensions.Options.IOptions<MongoDbSettings>
-            ));
-            var ent = await entRepo.GetByDesignationAsync(emp.Designation);
-
+            var ent = await EnsureLeaveEntitlementExists(emp.Designation);
             var balance = await _leaveBalanceRepo.GetByEmployeeYearAsync(emp.Id, year);
 
-            if (ent != null)
+            if (ent != null && ent.Entitlements != null)
             {
                 var entitlements = ent.Entitlements;
                 if (balance == null)
@@ -174,6 +185,7 @@ namespace UniversityPayroll.Controllers
                 }
                 else
                 {
+                    bool updated = false;
                     foreach (var kv in entitlements)
                     {
                         if (!balance.Entitlements.ContainsKey(kv.Key))
@@ -181,6 +193,7 @@ namespace UniversityPayroll.Controllers
                             balance.Entitlements[kv.Key] = kv.Value;
                             balance.Used[kv.Key] = 0;
                             balance.Balance[kv.Key] = kv.Value;
+                            updated = true;
                         }
                     }
                     var toRemove = balance.Entitlements.Keys.Except(entitlements.Keys).ToList();
@@ -189,12 +202,20 @@ namespace UniversityPayroll.Controllers
                         balance.Entitlements.Remove(key);
                         balance.Used.Remove(key);
                         balance.Balance.Remove(key);
+                        updated = true;
                     }
-                    await _leaveBalanceRepo.UpdateAsync(balance);
+                    if (updated)
+                    {
+                        await _leaveBalanceRepo.UpdateAsync(balance);
+                    }
                 }
             }
 
             var slips = await _salarySlipRepo.GetByEmployeeAsync(emp.Id);
+            var allLeaves = await _leaveRepo.GetByEmployeeAsync(emp.Id);
+            var unpaidLeaves = allLeaves.Where(l => l.LeaveType == "Unpaid" && l.StartDate.Year == year).ToList();
+
+            ViewData["UnpaidLeaves"] = unpaidLeaves;
 
             return View(new EmployeeProfileViewModel
             {
@@ -204,6 +225,20 @@ namespace UniversityPayroll.Controllers
                 LeaveBalance = balance,
                 SalarySlips = slips
             });
+        }
+
+        private async Task<SalaryStructure> EnsureSalaryStructureExists(string designation)
+        {
+            var existing = await _salaryStructRepo.GetByDesignationAsync(designation);
+            
+            return existing;
+        }
+
+        private async Task<LeaveEntitlement> EnsureLeaveEntitlementExists(string designation)
+        {
+            var existing = await _entitlementRepo.GetByDesignationAsync(designation);
+            
+            return existing;
         }
     }
 }

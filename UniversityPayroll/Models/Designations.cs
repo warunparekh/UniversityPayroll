@@ -1,16 +1,17 @@
-using System.Collections.Generic;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace UniversityPayroll.Models
 {
-    public static class Designations
+    public class Designation
     {
-        public static readonly List<string> All = new List<string>
-        {
-            "Professor",
-            "Associate Professor",
-            "Assistant Professor",
-            "Clerk",
-            "Accountant"
-        };
+        [BsonId]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string Id { get; set; }
+
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public bool IsActive { get; set; } = true;
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
     }
 }

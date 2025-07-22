@@ -1,35 +1,32 @@
-﻿@model List<UniversityPayroll.Models.Employee>
+@model List<UniversityPayroll.Models.Designation>
 @{
-    ViewData["Title"] = "Employees";
+    ViewData["Title"] = "Designations";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Employees</h2>
-    <a asp-action="Create" class="btn btn-primary">Add New Employee</a>
+    <h2>Designations</h2>
+    <a asp-action="Create" class="btn btn-primary">Add New Designation</a>
 </div>
 
 <div class="table-responsive">
     <table class="table table-striped">
         <thead>
             <tr>
-                <th>Code</th>
                 <th>Name</th>
-                <th>Designation</th>
-                <th>Base Salary</th>
+                <th>Description</th>
                 <th>Status</th>
+                <th>Created Date</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var employee in Model)
+            @foreach (var designation in Model)
             {
                 <tr>
-                    <td>@employee.EmployeeCode</td>
-                    <td>@employee.Name</td>
-                    <td>@employee.Designation</td>
-                    <td>@employee.BaseSalary.ToString("C")</td>
+                    <td>@designation.Name</td>
+                    <td>@designation.Description</td>
                     <td>
-                        @if (employee.Status == "Active")
+                        @if (designation.IsActive)
                         {
                             <span class="badge bg-success">Active</span>
                         }
@@ -38,9 +35,10 @@
                             <span class="badge bg-secondary">Inactive</span>
                         }
                     </td>
+                    <td>@designation.CreatedDate.ToString("dd/MM/yyyy")</td>
                     <td>
-                        <a asp-action="Edit" asp-route-id="@employee.Id" class="btn btn-sm btn-outline-primary">Edit</a>
-                        <form asp-action="Delete" asp-route-id="@employee.Id" method="post" class="d-inline">
+                        <a asp-action="Edit" asp-route-id="@designation.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <form asp-action="Delete" asp-route-id="@designation.Id" method="post" class="d-inline">
                             <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure?')">Delete</button>
                         </form>
                     </td>

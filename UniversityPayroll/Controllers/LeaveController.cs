@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using UniversityPayroll.ViewModels;
+using MongoDB.Driver;
 
 namespace UniversityPayroll.Controllers
 {
@@ -35,6 +36,19 @@ namespace UniversityPayroll.Controllers
             _leaveTypeRepo = leaveTypeRepo;
         }
 
+        private int CalculateWorkingDays(DateTime startDate, DateTime endDate)
+        {
+            int workingDays = 0;
+            for (DateTime date = startDate; date <= endDate; date = date.AddDays(1))
+            {
+                if (date.DayOfWeek != DayOfWeek.Sunday)
+                {
+                    workingDays++;
+                }
+            }
+            return workingDays;
+        }
+
         public async Task<IActionResult> Index()
         {
             var user = await _userManager.GetUserAsync(User);
@@ -58,6 +72,7 @@ namespace UniversityPayroll.Controllers
                     StartDate = leave.StartDate,
                     EndDate = leave.EndDate,
                     TotalDays = leave.TotalDays,
+                    IsHalfDay = leave.IsHalfDay,
                     Reason = leave.Reason,
                     Status = leave.Status,
                     AdminComments = leave.Comment
@@ -82,6 +97,7 @@ namespace UniversityPayroll.Controllers
                 StartDate = leave.StartDate,
                 EndDate = leave.EndDate,
                 TotalDays = leave.TotalDays,
+                IsHalfDay = leave.IsHalfDay,
                 Reason = leave.Reason,
                 Status = leave.Status,
                 AdminComments = leave.Comment
@@ -158,25 +174,48 @@ namespace UniversityPayroll.Controllers
                 return View(model);
             }
 
-            var balance = await _balanceRepo.GetByEmployeeYearAsync(employee.Id, model.StartDate.Year);
-            int availableBalance = balance?.Balance?.GetValueOrDefault(model.LeaveType) ?? 0;
-            int requestedDays = (model.EndDate - model.StartDate).Days + 1;
+            int workingDays = CalculateWorkingDays(model.StartDate, model.EndDate);
+            decimal requestedDays = model.IsHalfDay ? 0.5m : workingDays;
             model.TotalDays = requestedDays;
+
+            var balance = await _balanceRepo.GetByEmployeeYearAsync(employee.Id, model.StartDate.Year);
+            decimal availableBalance = balance?.Balance?.GetValueOrDefault(model.LeaveType) ?? 0;
 
             if (requestedDays > availableBalance)
             {
-                int paidDays = availableBalance;
-                int unpaidDays = requestedDays - availableBalance;
+                decimal paidDays = availableBalance;
+                decimal unpaidDays = requestedDays - availableBalance;
 
                 if (paidDays > 0)
                 {
+                    DateTime paidEndDate = model.StartDate;
+                    if (model.IsHalfDay)
+                    {
+                        paidEndDate = model.StartDate;
+                    }
+                    else
+                    {
+                        int daysToAdd = 0;
+                        decimal daysLeft = paidDays;
+                        while (daysLeft > 0)
+                        {
+                            if (paidEndDate.AddDays(daysToAdd).DayOfWeek != DayOfWeek.Sunday)
+                            {
+                                daysLeft--;
+                            }
+                            if (daysLeft > 0) daysToAdd++;
+                        }
+                        paidEndDate = model.StartDate.AddDays(daysToAdd);
+                    }
+
                     var paidLeave = new LeaveApplication
                     {
                         EmployeeId = employee.Id,
                         LeaveType = model.LeaveType,
                         StartDate = model.StartDate,
-                        EndDate = model.StartDate.AddDays(paidDays - 1),
+                        EndDate = paidEndDate,
                         TotalDays = paidDays,
+                        IsHalfDay = model.IsHalfDay && paidDays == 0.5m,
                         Reason = model.Reason,
                         Status = "Pending",
                         AppliedOn = DateTime.UtcNow
@@ -184,18 +223,38 @@ namespace UniversityPayroll.Controllers
                     await _leaveRepo.CreateAsync(paidLeave);
                 }
 
-                var unpaidLeave = new LeaveApplication
+                if (unpaidDays > 0)
                 {
-                    EmployeeId = employee.Id,
-                    LeaveType = "Unpaid",
-                    StartDate = model.StartDate.AddDays(paidDays),
-                    EndDate = model.StartDate.AddDays(paidDays + unpaidDays - 1),
-                    TotalDays = unpaidDays,
-                    Reason = $"Exceeded balance for {model.LeaveType}. Original reason: {model.Reason}",
-                    Status = "Pending",
-                    AppliedOn = DateTime.UtcNow
-                };
-                await _leaveRepo.CreateAsync(unpaidLeave);
+                    DateTime unpaidStartDate = model.StartDate;
+                    if (paidDays > 0 && !model.IsHalfDay)
+                    {
+                        int daysToAdd = 1;
+                        decimal daysLeft = paidDays;
+                        while (daysLeft > 0)
+                        {
+                            if (model.StartDate.AddDays(daysToAdd - 1).DayOfWeek != DayOfWeek.Sunday)
+                            {
+                                daysLeft--;
+                            }
+                            if (daysLeft > 0) daysToAdd++;
+                        }
+                        unpaidStartDate = model.StartDate.AddDays(daysToAdd - 1);
+                    }
+
+                    var unpaidLeave = new LeaveApplication
+                    {
+                        EmployeeId = employee.Id,
+                        LeaveType = "Unpaid",
+                        StartDate = unpaidStartDate,
+                        EndDate = model.EndDate,
+                        TotalDays = unpaidDays,
+                        IsHalfDay = model.IsHalfDay && paidDays == 0,
+                        Reason = $"Exceeded balance for {model.LeaveType}. Original reason: {model.Reason}",
+                        Status = "Pending",
+                        AppliedOn = DateTime.UtcNow
+                    };
+                    await _leaveRepo.CreateAsync(unpaidLeave);
+                }
 
                 TempData["Success"] = $"Leave application submitted. {paidDays} days as {model.LeaveType} leave and {unpaidDays} days as unpaid leave.";
             }
@@ -226,7 +285,6 @@ namespace UniversityPayroll.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // Check if leave has already started
             if (leave.StartDate <= DateTime.UtcNow.Date)
             {
                 TempData["Error"] = "Cannot change status after leave has started.";
@@ -236,28 +294,24 @@ namespace UniversityPayroll.Controllers
             var adminUser = await _userManager.GetUserAsync(User);
             var previousStatus = leave.Status;
 
-            // Update leave status
             leave.Status = "Approved";
             leave.Comment = string.IsNullOrWhiteSpace(comment) ? "Approved by admin" : comment;
             leave.DecidedBy = adminUser?.UserName ?? "Admin";
             leave.DecidedOn = DateTime.UtcNow;
 
-            // Handle leave balance changes
             if (leave.LeaveType != "Unpaid")
             {
                 var balance = await _balanceRepo.GetByEmployeeYearAsync(leave.EmployeeId ?? string.Empty, leave.StartDate.Year);
                 if (balance != null && balance.Balance.ContainsKey(leave.LeaveType))
                 {
-                    // If previously approved, first restore the balance
                     if (previousStatus == "Approved")
                     {
-                        balance.Balance[leave.LeaveType] += leave.TotalDays;
-                        balance.Used[leave.LeaveType] = Math.Max(0, balance.Used[leave.LeaveType] - leave.TotalDays);
+                        balance.Balance[leave.LeaveType] += (int)leave.TotalDays;
+                        balance.Used[leave.LeaveType] = Math.Max(0, balance.Used[leave.LeaveType] - (int)leave.TotalDays);
                     }
 
-                    // Now deduct for the new approval
-                    balance.Balance[leave.LeaveType] = Math.Max(0, balance.Balance[leave.LeaveType] - leave.TotalDays);
-                    balance.Used[leave.LeaveType] = (balance.Used?.GetValueOrDefault(leave.LeaveType) ?? 0) + leave.TotalDays;
+                    balance.Balance[leave.LeaveType] = Math.Max(0, balance.Balance[leave.LeaveType] - (int)Math.Ceiling(leave.TotalDays));
+                    balance.Used[leave.LeaveType] = (balance.Used?.GetValueOrDefault(leave.LeaveType) ?? 0) + (int)Math.Ceiling(leave.TotalDays);
                     balance.UpdatedOn = DateTime.UtcNow;
                     await _balanceRepo.UpdateAsync(balance);
                 }
@@ -286,7 +340,6 @@ namespace UniversityPayroll.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // Check if leave has already started
             if (leave.StartDate <= DateTime.UtcNow.Date)
             {
                 TempData["Error"] = "Cannot change status after leave has started.";
@@ -302,20 +355,18 @@ namespace UniversityPayroll.Controllers
             var adminUser = await _userManager.GetUserAsync(User);
             var previousStatus = leave.Status;
 
-            // Update leave status
             leave.Status = "Rejected";
             leave.Comment = comment;
             leave.DecidedBy = adminUser?.UserName ?? "Admin";
             leave.DecidedOn = DateTime.UtcNow;
 
-            // Handle leave balance changes - restore balance if previously approved
             if (previousStatus == "Approved" && leave.LeaveType != "Unpaid")
             {
                 var balance = await _balanceRepo.GetByEmployeeYearAsync(leave.EmployeeId ?? string.Empty, leave.StartDate.Year);
                 if (balance != null && balance.Balance.ContainsKey(leave.LeaveType))
                 {
-                    balance.Balance[leave.LeaveType] += leave.TotalDays;
-                    balance.Used[leave.LeaveType] = Math.Max(0, balance.Used[leave.LeaveType] - leave.TotalDays);
+                    balance.Balance[leave.LeaveType] += (int)Math.Ceiling(leave.TotalDays);
+                    balance.Used[leave.LeaveType] = Math.Max(0, balance.Used[leave.LeaveType] - (int)Math.Ceiling(leave.TotalDays));
                     balance.UpdatedOn = DateTime.UtcNow;
                     await _balanceRepo.UpdateAsync(balance);
                 }
@@ -325,5 +376,14 @@ namespace UniversityPayroll.Controllers
             TempData["Success"] = "Leave application rejected successfully.";
             return RedirectToAction(nameof(Index));
         }
+        [Authorize(Policy = "AdminOnly")]
+        [HttpPost]
+        public async Task<IActionResult> Delete(string id)
+        {
+            await _leaveRepo.DeleteAsync(id);
+
+            return RedirectToAction(nameof(Index));
+        }
+            
     }
 }
