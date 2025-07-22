@@ -45,31 +45,17 @@ else
             <h4>Leave Balances (@(Model.LeaveBalance?.Year ?? DateTime.UtcNow.Year))</h4>
             @if (Model.LeaveBalance != null && Model.LeaveBalance.Entitlements != null)
             {
-                <table class="table table-bordered w-auto">
-                    <thead>
-                        <tr>
-                            <th>Type</th>
-                            <th>Entitled</th>
-                            <th>Used</th>
-                            <th>Left</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var kv in Model.LeaveBalance.Entitlements)
-                        {
-                            var type = kv.Key;
-                            var entitled = kv.Value;
-                            var used = Model.LeaveBalance.Used != null && Model.LeaveBalance.Used.ContainsKey(type) ? Model.LeaveBalance.Used[type] : 0;
-                            var left = Model.LeaveBalance.Balance != null && Model.LeaveBalance.Balance.ContainsKey(type) ? Model.LeaveBalance.Balance[type] : (entitled - used);
-                            <tr>
-                                <td>@type</td>
-                                <td>@entitled</td>
-                                <td>@used</td>
-                                <td>@left</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                @foreach (var kv in Model.LeaveBalance.Entitlements)
+                {
+                    var type = kv.Key;
+                    var entitled = kv.Value;
+                    var used = Model.LeaveBalance.Used != null && Model.LeaveBalance.Used.ContainsKey(type) ? Model.LeaveBalance.Used[type] : 0;
+                    var left = Model.LeaveBalance.Balance != null && Model.LeaveBalance.Balance.ContainsKey(type) ? Model.LeaveBalance.Balance[type] : (entitled - used);
+                    <p> @type : @entitled / @left</p>
+                   
+                    
+                }
+                
             }
             else
             {
