@@ -3,97 +3,163 @@
 }
 
 <h2>Admin Dashboard</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
 <div class="row">
-    <div class="col-md-3">
-        <div class="card mb-3">
-            <div class="card-body">
-                <h5 class="card-title">Employees</h5>
-                <p class="card-text">Add or remove employees.</p>
-                <a asp-controller="Employee" asp-action="Index" class="btn btn-sm btn-primary">Manage</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card mb-3">
-            <div class="card-body">
-                <h5 class="card-title">Salary Structures</h5>
-                <p class="card-text">Add or remove salary structure.</p>
-                <a asp-controller="SalaryStructure" asp-action="Index" class="btn btn-sm btn-primary">Manage</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card mb-3">
-            <div class="card-body">
-                <h5 class="card-title">Tax Slabs</h5>
-                <p class="card-text">Add or remove Tax Slabs.</p>
-                <a asp-controller="TaxSlab" asp-action="Index" class="btn btn-sm btn-primary">Manage</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
+    <div class="col-md-4 col-lg-3">
         <div class="card mb-3 shadow-sm">
             <div class="card-body">
-                <h5 class="card-title">Manage Leave Types</h5>
+                <h5 class="card-title">
+                    <i class="bi bi-people-fill text-primary"></i>
+                    Employees
+                </h5>
+                <p class="card-text">Add, edit, or remove employees.</p>
+                <a asp-controller="Employee" asp-action="Index" class="btn btn-primary">Manage</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 col-lg-3">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-currency-dollar text-success"></i>
+                    Salary Structures
+                </h5>
+                <p class="card-text">Manage salary structures by designation.</p>
+                <a asp-controller="SalaryStructure" asp-action="Index" class="btn btn-primary">Manage</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 col-lg-3">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-calculator text-info"></i>
+                    Tax Slabs
+                </h5>
+                <p class="card-text">Configure tax calculation slabs.</p>
+                <a asp-controller="TaxSlab" asp-action="Index" class="btn btn-primary">Manage</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 col-lg-3">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-calendar-x text-warning"></i>
+                    Leave Types
+                </h5>
                 <p class="card-text">Add or remove leave types.</p>
-                <a asp-controller="LeaveType" asp-action="Index" class="btn btn-primary">Go</a>
+                <a asp-controller="LeaveType" asp-action="Index" class="btn btn-primary">Manage</a>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+
+    <div class="col-md-4 col-lg-3">
         <div class="card mb-3 shadow-sm">
             <div class="card-body">
-                <h5 class="card-title">Leave Entitlements</h5>
+                <h5 class="card-title">
+                    <i class="bi bi-calendar-check text-secondary"></i>
+                    Leave Entitlements
+                </h5>
                 <p class="card-text">Set leave entitlements per designation.</p>
-                <a asp-controller="LeaveEntitlement" asp-action="Index" class="btn btn-primary">Go</a>
+                <a asp-controller="LeaveEntitlement" asp-action="Index" class="btn btn-primary">Manage</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 col-lg-3">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-calendar-event text-danger"></i>
+                    Leave Management
+                </h5>
+                <p class="card-text">View and approve/reject leave applications.</p>
+                <a asp-controller="Leave" asp-action="Index" class="btn btn-primary">Manage</a>
             </div>
         </div>
     </div>
 </div>
 
-<form asp-action="RunPayroll" method="post" class="mb-3">
-    <div class="row">
-        <div class="col">
-            <select name="year" class="form-control" required>
-                @foreach (var y in ViewBag.Years)
-                {
-                    @if (y == DateTime.UtcNow.Year)
+<hr class="my-4">
+
+<div class="card">
+    <div class="card-header">
+        <h4 class="mb-0">
+            <i class="bi bi-calculator-fill text-success"></i>
+            Payroll Generation
+        </h4>
+    </div>
+    <div class="card-body">
+        <p class="card-text">Generate salary slips for all active employees for a specific month and year.</p>
+
+        <form asp-action="RunPayroll" method="post" class="row g-3">
+            <div class="col-md-4">
+                <label for="year" class="form-label">Year</label>
+                <select name="year" id="year" class="form-select" required>
+                    @foreach (var y in ViewBag.Years)
                     {
-                        <option value="@y" selected>@y</option>
+                        @if (y == DateTime.UtcNow.Year)
+                        {
+                            <option value="@y" selected>@y</option>
+                        }
+                        else
+                        {
+                            <option value="@y">@y</option>
+                        }
                     }
-                    else
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label for="month" class="form-label">Month</label>
+                <select name="month" id="month" class="form-select" required>
+                    @foreach (var m in ViewBag.Months)
                     {
-                        <option value="@y">@y</option>
+                        @if (m.Value == DateTime.UtcNow.Month)
+                        {
+                            <option value="@m.Value" selected>@m.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@m.Value">@m.Name</option>
+                        }
                     }
-                }
-            </select>
-        </div>
-        <div class="col">
-            <select name="month" class="form-control" required>
-                @foreach (var m in ViewBag.Months)
-                {
-                    @if (m.Value == DateTime.UtcNow.Month)
-                    {
-                        <option value="@m.Value" selected>@m.Name</option>
-                    }
-                    else
-                    {
-                        <option value="@m.Value">@m.Name</option>
-                    }
-                }
-            </select>
-        </div>
-        <div class="col">
-            <button type="submit" class="btn btn-success">Generate Salary Slips</button>
+                </select>
+            </div>
+
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-success" onclick="return confirm('Are you sure you want to generate payroll for the selected period? This action cannot be undone.')">
+                    <i class="bi bi-play-circle"></i>
+                    Generate Salary Slips
+                </button>
+            </div>
+        </form>
+
+        <div class="mt-3">
+            <small class="text-muted">
+                <i class="bi bi-info-circle"></i>
+                Note: Payroll can only be generated once per month. Ensure all leave applications are processed before generating payroll.
+            </small>
         </div>
     </div>
-</form>
-
-@if (TempData["Error"] != null)
-{
-    <div class="alert alert-danger">@TempData["Error"]</div>
-}
-@if (TempData["Success"] != null)
-{
-    <div class="alert alert-success">@TempData["Success"]</div>
-}
+</div>

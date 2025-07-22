@@ -10,13 +10,13 @@ namespace UniversityPayroll.Models
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
-        public string Id { get; set; }
+        public string? Id { get; set; }
 
         [BsonRepresentation(BsonType.ObjectId)]
-        public string EmployeeId { get; set; }
+        public string? EmployeeId { get; set; }
 
         [Required]
-        public string LeaveType { get; set; }
+        public string LeaveType { get; set; } = string.Empty;
 
         [Required]
         [DataType(DataType.Date)]
@@ -30,11 +30,11 @@ namespace UniversityPayroll.Models
         public int TotalDays { get; set; }
 
         [Required]
-        public string Reason { get; set; }
+        public string Reason { get; set; } = string.Empty;
 
-        public string Status { get; set; }
+        public string Status { get; set; } = "Pending";
 
-        public DateTime AppliedOn { get; set; }
+        public DateTime AppliedOn { get; set; } = DateTime.UtcNow;
 
         public string? Comment { get; set; }
 

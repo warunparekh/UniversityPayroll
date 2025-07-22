@@ -5,6 +5,14 @@
 
 <h2>Apply for Leave</h2>
 
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
 <form asp-action="Create" method="post">
     <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
@@ -18,28 +26,34 @@
         </div>
         <div class="col-md-6 mb-3">
             <label class="form-label">Total Days</label>
-            <p id="totalDaysText" class="form-control-plaintext">0</p>
+            <p id="totalDaysText" class="form-control-plaintext fw-bold">0</p>
         </div>
     </div>
+
     <div class="row">
         <div class="col-md-6 mb-3">
             <label asp-for="StartDate" class="form-label">Start Date</label>
-            <input asp-for="StartDate" class="form-control" type="date" required />
+            <input asp-for="StartDate" class="form-control" type="date" required min="@DateTime.Today.ToString("yyyy-MM-dd")" />
             <span asp-validation-for="StartDate" class="text-danger"></span>
         </div>
         <div class="col-md-6 mb-3">
             <label asp-for="EndDate" class="form-label">End Date</label>
-            <input asp-for="EndDate" class="form-control" type="date" required />
+            <input asp-for="EndDate" class="form-control" type="date" required min="@DateTime.Today.ToString("yyyy-MM-dd")" />
             <span asp-validation-for="EndDate" class="text-danger"></span>
         </div>
     </div>
+
     <div class="mb-3">
         <label asp-for="Reason" class="form-label">Reason</label>
-        <textarea asp-for="Reason" class="form-control" rows="3" required></textarea>
+        <textarea asp-for="Reason" class="form-control" rows="3" required maxlength="500" placeholder="Please provide a reason for your leave application..."></textarea>
         <span asp-validation-for="Reason" class="text-danger"></span>
+        <div class="form-text">Maximum 500 characters</div>
     </div>
-    <button type="submit" class="btn btn-primary">Submit Application</button>
-    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Submit Application</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </div>
 </form>
 
 @section Scripts {
@@ -58,13 +72,22 @@
                     const timeDiff = endDate.getTime() - startDate.getTime();
                     const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
                     totalDaysText.textContent = dayDiff;
+                    totalDaysText.className = 'form-control-plaintext fw-bold text-primary';
                 } else {
                     totalDaysText.textContent = 0;
+                    totalDaysText.className = 'form-control-plaintext fw-bold text-muted';
                 }
             }
 
-            startDateInput.addEventListener('change', calculateDays);
+            function updateEndDateMin() {
+                endDateInput.min = startDateInput.value;
+                calculateDays();
+            }
+
+            startDateInput.addEventListener('change', updateEndDateMin);
             endDateInput.addEventListener('change', calculateDays);
+
+            calculateDays();
         });
     </script>
 }
