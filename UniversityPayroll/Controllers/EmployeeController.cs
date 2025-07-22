@@ -22,6 +22,7 @@ namespace UniversityPayroll.Controllers
         private readonly LeaveRepository _leaveRepo;
         private readonly LeaveEntitlementRepository _entitlementRepo;
         private readonly DesignationRepository _designationRepo;
+        private readonly LeaveTypeRepository _leaveTypeRepo;
 
         public EmployeeController(
             EmployeeRepository employeeRepo,
@@ -32,7 +33,8 @@ namespace UniversityPayroll.Controllers
             SalarySlipRepository salarySlipRepo,
             LeaveRepository leaveRepo,
             LeaveEntitlementRepository entitlementRepo,
-            DesignationRepository designationRepo)
+            DesignationRepository designationRepo,
+            LeaveTypeRepository leaveTypeRepo)
         {
             _employeeRepo = employeeRepo;
             _salaryStructRepo = salaryStructRepo;
@@ -43,6 +45,20 @@ namespace UniversityPayroll.Controllers
             _leaveRepo = leaveRepo;
             _entitlementRepo = entitlementRepo;
             _designationRepo = designationRepo;
+            _leaveTypeRepo = leaveTypeRepo;
+        }
+
+        private int CalculateWorkingDays(DateTime startDate, DateTime endDate)
+        {
+            int workingDays = 0;
+            for (DateTime date = startDate; date <= endDate; date = date.AddDays(1))
+            {
+                if (date.DayOfWeek != DayOfWeek.Sunday)
+                {
+                    workingDays++;
+                }
+            }
+            return workingDays;
         }
 
         [Authorize(Policy = "CrudOnlyForAdmin")]
@@ -62,7 +78,7 @@ namespace UniversityPayroll.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(Employee model, string email, string password)
         {
-            
+
             var user = new ApplicationUser { UserName = email, Email = email };
             var result = await _userManager.CreateAsync(user, password);
             if (!result.Succeeded)
@@ -77,7 +93,7 @@ namespace UniversityPayroll.Controllers
                 await EnsureLeaveEntitlementExists(model.Designation);
                 return RedirectToAction(nameof(Index));
             }
-            
+
 
             var designations = await _designationRepo.GetActiveAsync();
             ViewBag.Designations = new SelectList(designations, "Name", "Name", model.Designation);
@@ -215,6 +231,23 @@ namespace UniversityPayroll.Controllers
             var allLeaves = await _leaveRepo.GetByEmployeeAsync(emp.Id);
             var unpaidLeaves = allLeaves.Where(l => l.LeaveType == "Unpaid" && l.StartDate.Year == year).ToList();
 
+            var leaveApplications = allLeaves.Select(leave => new LeaveApplicationViewModel
+            {
+                LeaveId = leave.Id ?? string.Empty,
+                EmployeeName = emp.Name,
+                EmployeeCode = emp.EmployeeCode,
+                LeaveType = leave.LeaveType,
+                StartDate = leave.StartDate,
+                EndDate = leave.EndDate,
+                TotalDays = leave.TotalDays,
+                IsHalfDay = leave.IsHalfDay,
+                Reason = leave.Reason,
+                Status = leave.Status,
+                AdminComments = leave.Comment
+            }).OrderByDescending(l => l.StartDate).ToList();
+
+            var leaveTypes = await _leaveTypeRepo.GetAllAsync();
+
             ViewData["UnpaidLeaves"] = unpaidLeaves;
 
             return View(new EmployeeProfileViewModel
@@ -223,21 +256,140 @@ namespace UniversityPayroll.Controllers
                 SalaryStructure = structure,
                 TaxSlab = taxSlab,
                 LeaveBalance = balance,
-                SalarySlips = slips
+                SalarySlips = slips,
+                LeaveApplications = leaveApplications,
+                LeaveTypes = leaveTypes
             });
+        }
+
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> ApplyLeave(LeaveApplication model)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction("Login", "Account");
+
+            var employee = await _employeeRepo.GetByUserIdAsync(user.Id.ToString());
+            if (employee == null)
+            {
+                TempData["Error"] = "Employee profile not found.";
+                return RedirectToAction("Profile");
+            }
+
+            model.EmployeeId = employee.Id;
+            model.Status = "Pending";
+            model.AppliedOn = DateTime.UtcNow;
+
+            if (!ModelState.IsValid)
+            {
+                TempData["Error"] = "Invalid data submitted. Please check your inputs.";
+                return RedirectToAction("Profile");
+            }
+
+            int workingDays = CalculateWorkingDays(model.StartDate, model.EndDate);
+            decimal requestedDays = model.IsHalfDay ? 0.5m : workingDays;
+            model.TotalDays = requestedDays;
+
+            var balance = await _leaveBalanceRepo.GetByEmployeeYearAsync(employee.Id, model.StartDate.Year);
+            decimal availableBalance = balance?.Balance?.GetValueOrDefault(model.LeaveType) ?? 0;
+
+            if (requestedDays > availableBalance)
+            {
+                decimal paidDays = availableBalance;
+                decimal unpaidDays = requestedDays - availableBalance;
+
+                if (paidDays > 0)
+                {
+                    DateTime paidEndDate = model.StartDate;
+                    if (model.IsHalfDay)
+                    {
+                        paidEndDate = model.StartDate;
+                    }
+                    else
+                    {
+                        int daysToAdd = 0;
+                        decimal daysLeft = paidDays;
+                        while (daysLeft > 0)
+                        {
+                            if (paidEndDate.AddDays(daysToAdd).DayOfWeek != DayOfWeek.Sunday)
+                            {
+                                daysLeft--;
+                            }
+                            if (daysLeft > 0) daysToAdd++;
+                        }
+                        paidEndDate = model.StartDate.AddDays(daysToAdd);
+                    }
+
+                    var paidLeave = new LeaveApplication
+                    {
+                        EmployeeId = employee.Id,
+                        LeaveType = model.LeaveType,
+                        StartDate = model.StartDate,
+                        EndDate = paidEndDate,
+                        TotalDays = paidDays,
+                        IsHalfDay = model.IsHalfDay && paidDays == 0.5m,
+                        Reason = model.Reason,
+                        Status = "Pending",
+                        AppliedOn = DateTime.UtcNow
+                    };
+                    await _leaveRepo.CreateAsync(paidLeave);
+                }
+
+                if (unpaidDays > 0)
+                {
+                    DateTime unpaidStartDate = model.StartDate;
+                    if (paidDays > 0 && !model.IsHalfDay)
+                    {
+                        int daysToAdd = 1;
+                        decimal daysLeft = paidDays;
+                        while (daysLeft > 0)
+                        {
+                            if (model.StartDate.AddDays(daysToAdd - 1).DayOfWeek != DayOfWeek.Sunday)
+                            {
+                                daysLeft--;
+                            }
+                            if (daysLeft > 0) daysToAdd++;
+                        }
+                        unpaidStartDate = model.StartDate.AddDays(daysToAdd - 1);
+                    }
+
+                    var unpaidLeave = new LeaveApplication
+                    {
+                        EmployeeId = employee.Id,
+                        LeaveType = "Unpaid",
+                        StartDate = unpaidStartDate,
+                        EndDate = model.EndDate,
+                        TotalDays = unpaidDays,
+                        IsHalfDay = model.IsHalfDay && paidDays == 0,
+                        Reason = $"Exceeded balance for {model.LeaveType}. Original reason: {model.Reason}",
+                        Status = "Pending",
+                        AppliedOn = DateTime.UtcNow
+                    };
+                    await _leaveRepo.CreateAsync(unpaidLeave);
+                }
+
+                TempData["Success"] = $"Leave application submitted. {paidDays} days as {model.LeaveType} and {unpaidDays} days as unpaid leave.";
+            }
+            else
+            {
+                await _leaveRepo.CreateAsync(model);
+                TempData["Success"] = "Leave application submitted successfully.";
+            }
+
+            return RedirectToAction(nameof(Profile));
         }
 
         private async Task<SalaryStructure> EnsureSalaryStructureExists(string designation)
         {
             var existing = await _salaryStructRepo.GetByDesignationAsync(designation);
-            
+
             return existing;
         }
 
         private async Task<LeaveEntitlement> EnsureLeaveEntitlementExists(string designation)
         {
             var existing = await _entitlementRepo.GetByDesignationAsync(designation);
-            
+
             return existing;
         }
     }

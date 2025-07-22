@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using QuestPDF.Fluent;
@@ -24,6 +25,8 @@ public class AdminController : Controller
     private readonly SalarySlipRepository _slipRepo;
     private readonly TaxSlabRepository _taxSlabRepo;
     private readonly IWebHostEnvironment _env;
+    private readonly LeaveBalanceRepository _balanceRepo;
+    private readonly UserManager<ApplicationUser> _userManager;
 
     public AdminController(
         EmployeeRepository employeeRepo,
@@ -31,7 +34,9 @@ public class AdminController : Controller
         LeaveRepository leaveRepo,
         SalarySlipRepository slipRepo,
         TaxSlabRepository taxSlabRepo,
-        IWebHostEnvironment env)
+        IWebHostEnvironment env,
+        LeaveBalanceRepository balanceRepo,
+        UserManager<ApplicationUser> userManager)
     {
         _employeeRepo = employeeRepo;
         _structureRepo = structureRepo;
@@ -39,6 +44,8 @@ public class AdminController : Controller
         _slipRepo = slipRepo;
         _taxSlabRepo = taxSlabRepo;
         _env = env;
+        _balanceRepo = balanceRepo;
+        _userManager = userManager;
 
         QuestPDF.Settings.License = LicenseType.Community;
     }
@@ -127,6 +134,122 @@ public class AdminController : Controller
         }).OrderByDescending(l => l.StartDate).ToList();
 
         return View(adminViewModel);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApproveLeave(string id, string comment)
+    {
+        if (string.IsNullOrEmpty(id))
+        {
+            TempData["Error"] = "Invalid leave application ID.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var leave = await _leaveRepo.GetByIdAsync(id);
+        if (leave == null)
+        {
+            TempData["Error"] = "Leave application not found.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (leave.StartDate <= DateTime.UtcNow.Date)
+        {
+            TempData["Error"] = "Cannot change status after leave has started.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var adminUser = await _userManager.GetUserAsync(User);
+        var previousStatus = leave.Status;
+
+        leave.Status = "Approved";
+        leave.Comment = string.IsNullOrWhiteSpace(comment) ? "Approved by admin" : comment;
+        leave.DecidedBy = adminUser?.UserName ?? "Admin";
+        leave.DecidedOn = DateTime.UtcNow;
+
+        if (leave.LeaveType != "Unpaid")
+        {
+            var balance = await _balanceRepo.GetByEmployeeYearAsync(leave.EmployeeId ?? string.Empty, leave.StartDate.Year);
+            if (balance != null && balance.Balance.ContainsKey(leave.LeaveType))
+            {
+                if (previousStatus == "Approved")
+                {
+                    balance.Balance[leave.LeaveType] += (int)leave.TotalDays;
+                    balance.Used[leave.LeaveType] = Math.Max(0, balance.Used[leave.LeaveType] - (int)leave.TotalDays);
+                }
+
+                balance.Balance[leave.LeaveType] = Math.Max(0, balance.Balance[leave.LeaveType] - (int)Math.Ceiling(leave.TotalDays));
+                balance.Used[leave.LeaveType] = (balance.Used?.GetValueOrDefault(leave.LeaveType) ?? 0) + (int)Math.Ceiling(leave.TotalDays);
+                balance.UpdatedOn = DateTime.UtcNow;
+                await _balanceRepo.UpdateAsync(balance);
+            }
+        }
+
+        await _leaveRepo.UpdateAsync(leave);
+        TempData["Success"] = $"Leave application approved successfully for {leave.TotalDays} day(s).";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RejectLeave(string id, string comment)
+    {
+        if (string.IsNullOrEmpty(id))
+        {
+            TempData["Error"] = "Invalid leave application ID.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var leave = await _leaveRepo.GetByIdAsync(id);
+        if (leave == null)
+        {
+            TempData["Error"] = "Leave application not found.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (leave.StartDate <= DateTime.UtcNow.Date)
+        {
+            TempData["Error"] = "Cannot change status after leave has started.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (string.IsNullOrWhiteSpace(comment))
+        {
+            TempData["Error"] = "A comment is required when rejecting a leave application.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var adminUser = await _userManager.GetUserAsync(User);
+        var previousStatus = leave.Status;
+
+        leave.Status = "Rejected";
+        leave.Comment = comment;
+        leave.DecidedBy = adminUser?.UserName ?? "Admin";
+        leave.DecidedOn = DateTime.UtcNow;
+
+        if (previousStatus == "Approved" && leave.LeaveType != "Unpaid")
+        {
+            var balance = await _balanceRepo.GetByEmployeeYearAsync(leave.EmployeeId ?? string.Empty, leave.StartDate.Year);
+            if (balance != null && balance.Balance.ContainsKey(leave.LeaveType))
+            {
+                balance.Balance[leave.LeaveType] += (int)Math.Ceiling(leave.TotalDays);
+                balance.Used[leave.LeaveType] = Math.Max(0, balance.Used[leave.LeaveType] - (int)Math.Ceiling(leave.TotalDays));
+                balance.UpdatedOn = DateTime.UtcNow;
+                await _balanceRepo.UpdateAsync(balance);
+            }
+        }
+
+        await _leaveRepo.UpdateAsync(leave);
+        TempData["Success"] = "Leave application rejected successfully.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> DeleteLeave(string id)
+    {
+        await _leaveRepo.DeleteAsync(id);
+        TempData["Success"] = "Leave application deleted successfully.";
+        return RedirectToAction(nameof(Index));
     }
 
     [HttpPost]

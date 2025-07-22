@@ -95,9 +95,9 @@
                     <div class="col-12">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h2>Leave Applications</h2>
-                            <a asp-controller="Leave" asp-action="Create" class="btn btn-success">
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#leaveApplicationModal">
                                 <i class="fas fa-plus"></i> Apply for Leave
-                            </a>
+                            </button>
                         </div>
 
                         <div class="card">
@@ -118,10 +118,56 @@
                                                 <th>Comments</th>
                                             </tr>
                                         </thead>
-                                        <tbody id="leaveApplicationsTable">
-                                            <tr>
-                                                <td colspan="7" class="text-center">Loading...</td>
-                                            </tr>
+                                        <tbody>
+                                            @if (Model.LeaveApplications != null && Model.LeaveApplications.Any())
+                                            {
+                                                @foreach (var leave in Model.LeaveApplications)
+                                                {
+                                                    <tr>
+                                                        <td>
+                                                            <span class="badge @(leave.LeaveType == "Unpaid" ? "bg-danger" : "bg-primary")">
+                                                                @leave.LeaveType
+                                                            </span>
+                                                        </td>
+                                                        <td>@leave.StartDate.ToString("dd/MM/yyyy")</td>
+                                                        <td>@leave.EndDate.ToString("dd/MM/yyyy")</td>
+                                                        <td>@leave.TotalDays</td>
+                                                        <td>
+                                                            <span class="d-inline-block text-truncate" style="max-width: 150px;" title="@leave.Reason">
+                                                                @leave.Reason
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            @switch (leave.Status.ToLower())
+                                                            {
+                                                                case "pending":
+                                                                    <span class="badge bg-warning text-dark">@leave.Status</span>
+                                                                    break;
+                                                                case "approved":
+                                                                    <span class="badge bg-success">@leave.Status</span>
+                                                                    break;
+                                                                case "rejected":
+                                                                    <span class="badge bg-danger">@leave.Status</span>
+                                                                    break;
+                                                                default:
+                                                                    <span class="badge bg-secondary">@leave.Status</span>
+                                                                    break;
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            <span class="d-inline-block text-truncate" style="max-width: 150px;" title="@leave.AdminComments">
+                                                                @leave.AdminComments
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <tr>
+                                                    <td colspan="7" class="text-center text-muted">No leave applications found.</td>
+                                                </tr>
+                                            }
                                         </tbody>
                                     </table>
                                 </div>
@@ -188,6 +234,66 @@
     </div>
 </div>
 
+<!-- Leave Application Modal -->
+<div class="modal fade" id="leaveApplicationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form asp-controller="Employee" asp-action="ApplyLeave" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Apply for Leave</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="LeaveType" class="form-label">Leave Type</label>
+                            <select name="LeaveType" id="LeaveType" class="form-select" required>
+                                <option value="">-- Select Leave Type --</option>
+                                @if (Model.LeaveTypes != null)
+                                {
+                                    @foreach (var leaveType in Model.LeaveTypes)
+                                    {
+                                        <option value="@leaveType.Name">@leaveType.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Total Days</label>
+                            <p id="totalDaysText" class="form-control-plaintext fw-bold">0</p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="StartDate" class="form-label">Start Date</label>
+                            <input name="StartDate" id="modalStartDate" class="form-control" type="date" required min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="EndDate" class="form-label">End Date</label>
+                            <input name="EndDate" id="modalEndDate" class="form-control" type="date" required min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input name="IsHalfDay" id="modalHalfDayCheck" class="form-check-input" type="checkbox" />
+                            <label class="form-check-label" for="modalHalfDayCheck">Half Day Leave</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="Reason" class="form-label">Reason</label>
+                        <textarea name="Reason" class="form-control" rows="3" required maxlength="500"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit Application</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
 <style>
     .sidebar {
         min-height: calc(100vh - 56px);
@@ -213,39 +319,50 @@
             }
         };
 
-        fetch('/Leave/Index')
-            .then(response => response.text())
-            .then(html => {
-                var parser = new DOMParser();
-                var doc = parser.parseFromString(html, 'text/html');
-                var tableRows = doc.querySelectorAll('.table tbody tr');
-                var tableHtml = '';
+        document.addEventListener('DOMContentLoaded', function () {
+            const startDateInput = document.getElementById('modalStartDate');
+            const endDateInput = document.getElementById('modalEndDate');
+            const totalDaysText = document.getElementById('totalDaysText');
+            const halfDayCheck = document.getElementById('modalHalfDayCheck');
 
-                if (tableRows.length > 0) {
-                    tableRows.forEach(function(row) {
-                        var cells = row.querySelectorAll('td');
-                        if (cells.length >= 7) {
-                            tableHtml += '<tr>';
-                            for (var i = 0; i < 7; i++) {
-                                if (i === 6) {
-                                    tableHtml += '<td>' + (cells[cells.length - 1].textContent.trim() || '-') + '</td>';
-                                } else {
-                                    tableHtml += '<td>' + cells[i].innerHTML + '</td>';
-                                }
+            function calculateDays() {
+                const startDate = new Date(startDateInput.value);
+                const endDate = new Date(endDateInput.value);
+                const isHalfDay = halfDayCheck.checked;
+
+                if (startDateInput.value && endDateInput.value && endDate >= startDate) {
+                    if (isHalfDay) {
+                        totalDaysText.textContent = '0.5';
+                        endDateInput.value = startDateInput.value;
+                        endDateInput.disabled = true;
+                    } else {
+                        endDateInput.disabled = false;
+                        let workingDays = 0;
+                        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                            if (d.getDay() !== 0) { // 0 is Sunday
+                                workingDays++;
                             }
-                            tableHtml += '</tr>';
                         }
-                    });
-                }
-
-                if (tableHtml) {
-                    document.getElementById('leaveApplicationsTable').innerHTML = tableHtml;
+                        totalDaysText.textContent = workingDays;
+                    }
                 } else {
-                    document.getElementById('leaveApplicationsTable').innerHTML = '<tr><td colspan="7" class="text-center text-muted">No leave applications found</td></tr>';
+                    totalDaysText.textContent = '0';
                 }
-            })
-            .catch(error => {
-                document.getElementById('leaveApplicationsTable').innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error loading leave applications</td></tr>';
-            });
+            }
+
+            function updateEndDateMin() {
+                endDateInput.min = startDateInput.value;
+                if (new Date(endDateInput.value) < new Date(startDateInput.value)) {
+                    endDateInput.value = startDateInput.value;
+                }
+                calculateDays();
+            }
+
+            startDateInput.addEventListener('change', updateEndDateMin);
+            endDateInput.addEventListener('change', calculateDays);
+            halfDayCheck.addEventListener('change', calculateDays);
+
+            calculateDays();
+        });
     </script>
 }
