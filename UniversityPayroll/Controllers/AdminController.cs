@@ -10,10 +10,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection.Metadata;
 using System.Threading.Tasks;
 using UniversityPayroll.Data;
 using UniversityPayroll.Models;
+using UniversityPayroll.ViewModels;
 
 [Authorize(Policy = "AdminOnly")]
 public class AdminController : Controller
@@ -107,9 +107,26 @@ public class AdminController : Controller
 
     public async Task<IActionResult> Index()
     {
-        ViewBag.Years = Enumerable.Range(DateTime.UtcNow.Year - 5, 10).ToList();
-        ViewBag.Months = Enumerable.Range(1, 12).Select(i => new { Value = i, Name = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i) }).ToList();
-        return View();
+        var allLeaves = await _leaveRepo.GetAllAsync();
+        var allEmployees = await _employeeRepo.GetAllAsync();
+        var employeeDict = allEmployees.ToDictionary(e => e.Id);
+
+        var adminViewModel = allLeaves.Select(leave => new LeaveApplicationViewModel
+        {
+            LeaveId = leave.Id ?? string.Empty,
+            EmployeeName = employeeDict.GetValueOrDefault(leave.EmployeeId ?? string.Empty)?.Name ?? "Unknown",
+            EmployeeCode = employeeDict.GetValueOrDefault(leave.EmployeeId ?? string.Empty)?.EmployeeCode ?? "N/A",
+            LeaveType = leave.LeaveType,
+            StartDate = leave.StartDate,
+            EndDate = leave.EndDate,
+            TotalDays = leave.TotalDays,
+            IsHalfDay = leave.IsHalfDay,
+            Reason = leave.Reason,
+            Status = leave.Status,
+            AdminComments = leave.Comment
+        }).OrderByDescending(l => l.StartDate).ToList();
+
+        return View(adminViewModel);
     }
 
     [HttpPost]
@@ -199,7 +216,7 @@ public class AdminController : Controller
             slip.PdfUrl = pdfPath;
             await _slipRepo.CreateAsync(slip);
         }
-        TempData["Success"] = "Payroll generated.";
+        TempData["Success"] = "Payroll generated successfully.";
         return RedirectToAction("Index");
     }
 

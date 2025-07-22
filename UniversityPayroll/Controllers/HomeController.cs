@@ -8,13 +8,7 @@ namespace UniversityPayroll.Controllers
     {
         public IActionResult Index()
         {
-            if (User.Identity.IsAuthenticated)
-            {
-                if (User.IsInRole("Admin"))
-                    return RedirectToAction("Index", "Admin");
-                return RedirectToAction("Profile", "Employee");
-            }
-            return RedirectToAction("Login", "Account");
+            return View();
         }
 
         public IActionResult Privacy()

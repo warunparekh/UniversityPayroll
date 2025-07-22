@@ -7,13 +7,16 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/UniversityPayroll.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
 </head>
 <body>
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-controller="Home" asp-action="Index">UniversityPayroll</a>
+                <a class="navbar-brand" asp-controller="Home" asp-action="Index">
+                    <i class="fas fa-university"></i> UniversityPayroll
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -25,15 +28,16 @@
                             <li class="nav-item">
                                 @if (User.IsInRole("Admin"))
                                 {
-                                    <a asp-controller="Admin" asp-action="Index" class="btn btn-primary mx-2">Admin Dashboard</a>
+                                    <a asp-controller="Admin" asp-action="Index" class="btn btn-primary mx-2">
+                                        <i class="fas fa-tachometer-alt"></i> Admin Dashboard
+                                    </a>
                                 }
                                 else
                                 {
-                                    <a asp-controller="Employee" asp-action="Profile" class="btn btn-primary mx-2">My Profile</a>
+                                    <a asp-controller="Employee" asp-action="Profile" class="btn btn-primary mx-2">
+                                        <i class="fas fa-user"></i> My Profile
+                                    </a>
                                 }
-                            </li>
-                            <li class="nav-item">
-                                <a class="btn btn-primary mx-2" asp-controller="Leave" asp-action="Index">Leave Management</a>
                             </li>
                         }
                     </ul>
@@ -41,18 +45,24 @@
                         @if (User.Identity.IsAuthenticated)
                         {
                             <li class="nav-item">
-                                <span class="navbar-text me-3">@User.Identity.Name!</span>
+                                <span class="navbar-text me-3">
+                                    <i class="fas fa-user-circle"></i> @User.Identity.Name
+                                </span>
                             </li>
                             <li class="nav-item">
                                 <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-outline-primary">Logout</button>
+                                    <button type="submit" class="btn btn-outline-danger">
+                                        <i class="fas fa-sign-out-alt"></i> Logout
+                                    </button>
                                 </form>
                             </li>
                         }
                         else
                         {
                             <li class="nav-item">
-                                <a class="btn btn-primary" asp-controller="Account" asp-action="Login">Login</a>
+                                <a class="btn btn-primary" asp-controller="Account" asp-action="Login">
+                                    <i class="fas fa-sign-in-alt"></i> Login
+                                </a>
                             </li>
                         }
                     </ul>
@@ -60,7 +70,7 @@
             </div>
         </nav>
     </header>
-    <div class="container">
+    <div class="container-fluid">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>

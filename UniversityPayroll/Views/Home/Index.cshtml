@@ -3,32 +3,41 @@
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome to University Payroll</h1>
-    <p>Manage employee payroll, leaves, and salary structures efficiently.</p>
-    
+    <h1 class="display-4">
+        <i class="fas fa-university text-primary"></i>
+        Welcome to University Payroll
+    </h1>
+    <p class="lead">Manage employee payroll, leaves, and salary structures efficiently.</p>
+
     @if (User.Identity.IsAuthenticated)
     {
-        <div class="row justify-content-center">
+        <div class="row justify-content-center mt-5">
             @if (User.IsInRole("Admin"))
             {
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
+                <div class="col-md-8 col-lg-6">
+                    <div class="card shadow">
+                        <div class="card-body text-center p-4">
+                            <i class="fas fa-tachometer-alt fa-3x text-primary mb-3"></i>
                             <h5 class="card-title">Admin Dashboard</h5>
-                            <p class="card-text">Manage employees, salary structures, and payroll.</p>
-                            <a asp-controller="Admin" asp-action="Index" class="btn btn-primary">Go to Admin Dashboard</a>
+                            <p class="card-text">Manage employees, salary structures, leave applications, and payroll generation.</p>
+                            <a asp-controller="Admin" asp-action="Index" class="btn btn-primary btn-lg">
+                                <i class="fas fa-arrow-right"></i> Go to Admin Dashboard
+                            </a>
                         </div>
                     </div>
                 </div>
             }
             else
             {
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
+                <div class="col-md-8 col-lg-6">
+                    <div class="card shadow">
+                        <div class="card-body text-center p-4">
+                            <i class="fas fa-user fa-3x text-success mb-3"></i>
                             <h5 class="card-title">Employee Profile</h5>
-                            <p class="card-text">View your profile, salary slips, and leave balance.</p>
-                            <a asp-controller="Employee" asp-action="Profile" class="btn btn-primary">View Profile</a>
+                            <p class="card-text">View your profile, apply for leave, check salary slips, and manage leave balance.</p>
+                            <a asp-controller="Employee" asp-action="Profile" class="btn btn-success btn-lg">
+                                <i class="fas fa-arrow-right"></i> View My Profile
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -37,16 +46,49 @@
     }
     else
     {
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-body">
+        <div class="row justify-content-center mt-5">
+            <div class="col-md-8 col-lg-6">
+                <div class="card shadow">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-sign-in-alt fa-3x text-info mb-3"></i>
                         <h5 class="card-title">Please Login</h5>
-                        <p class="card-text">Access your payroll information by logging in.</p>
-                        <a asp-controller="Account" asp-action="Login" class="btn btn-primary">Login</a>
+                        <p class="card-text">Access your payroll information by logging into your account.</p>
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-info btn-lg">
+                            <i class="fas fa-arrow-right"></i> Login to Continue
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
     }
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card border-0">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-2x text-primary mb-3"></i>
+                <h5>Employee Management</h5>
+                <p class="text-muted">Comprehensive employee data management system</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0">
+            <div class="card-body text-center">
+                <i class="fas fa-calendar-alt fa-2x text-success mb-3"></i>
+                <h5>Leave Management</h5>
+                <p class="text-muted">Easy leave application and approval workflow</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0">
+            <div class="card-body text-center">
+                <i class="fas fa-money-check-alt fa-2x text-info mb-3"></i>
+                <h5>Payroll Processing</h5>
+                <p class="text-muted">Automated salary calculation and slip generation</p>
+            </div>
+        </div>
+    </div>
 </div>
