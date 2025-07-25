@@ -23,5 +23,6 @@ namespace UniversityPayroll.Data
         public IMongoCollection<TaxSlab> TaxSlabs => _database.GetCollection<TaxSlab>("taxSlabs");
         public IMongoCollection<SalarySlip> SalarySlips => _database.GetCollection<SalarySlip>("salarySlips");
         public IMongoCollection<Designation> Designations => _database.GetCollection<Designation>("designations");
+        public IMongoCollection<Notification> Notifications => _database.GetCollection<Notification>("Notifications");
     }
 }

@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.StaticFiles;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -27,7 +26,7 @@ public class AdminController : Controller
     private readonly IWebHostEnvironment _env;
     private readonly LeaveBalanceRepository _balanceRepo;
     private readonly UserManager<ApplicationUser> _userManager;
-
+    private readonly NotificationRepository _notificationRepo;
     public AdminController(
         EmployeeRepository employeeRepo,
         SalaryStructureRepository structureRepo,
@@ -36,7 +35,8 @@ public class AdminController : Controller
         TaxSlabRepository taxSlabRepo,
         IWebHostEnvironment env,
         LeaveBalanceRepository balanceRepo,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        NotificationRepository notificationRepo)
     {
         _employeeRepo = employeeRepo;
         _structureRepo = structureRepo;
@@ -48,116 +48,111 @@ public class AdminController : Controller
         _userManager = userManager;
 
         QuestPDF.Settings.License = LicenseType.Community;
+        _notificationRepo = notificationRepo;
     }
+
+    #region Helpers
+
+    private static int GetWorkingDaysInMonth(int year, int month) =>
+        Enumerable.Range(1, DateTime.DaysInMonth(year, month))
+                  .Select(day => new DateTime(year, month, day))
+                  .Count(d => d.DayOfWeek != DayOfWeek.Sunday);
 
     private decimal CalculateUnpaidLeaveDeduction(decimal baseSalary, List<LeaveApplication> unpaidLeaves, int year, int month)
     {
-        decimal totalDeduction = 0;
-        int workingDaysInMonth = GetWorkingDaysInMonth(year, month);
-        decimal perDaySalary = baseSalary / workingDaysInMonth;
+        decimal perDaySalary = baseSalary / GetWorkingDaysInMonth(year, month);
+        DateTime monthStart = new(year, month, 1);
+        DateTime monthEnd = new(year, month, DateTime.DaysInMonth(year, month));
+
+        decimal total = 0;
 
         foreach (var leave in unpaidLeaves.Where(l => l.Status == "Approved"))
         {
-            decimal leaveDaysInMonth = 0;
+            DateTime start = leave.StartDate > monthStart ? leave.StartDate : monthStart;
+            DateTime end = leave.EndDate < monthEnd ? leave.EndDate : monthEnd;
+            if (end < start) continue;
 
-            if (leave.StartDate.Year == year && leave.StartDate.Month == month)
+            if (leave.IsHalfDay)
             {
-                DateTime monthEnd = new DateTime(year, month, DateTime.DaysInMonth(year, month));
-                DateTime leaveEndInMonth = leave.EndDate > monthEnd ? monthEnd : leave.EndDate;
-
-                for (DateTime date = leave.StartDate; date <= leaveEndInMonth; date = date.AddDays(1))
-                {
-                    if (date.DayOfWeek != DayOfWeek.Sunday)
-                    {
-                        leaveDaysInMonth += leave.IsHalfDay ? 0.5m : 1m;
-                        if (leave.IsHalfDay) break;
-                    }
-                }
-            }
-            else if (leave.StartDate < new DateTime(year, month, 1) && leave.EndDate >= new DateTime(year, month, 1))
-            {
-                DateTime monthStart = new DateTime(year, month, 1);
-                DateTime monthEnd = new DateTime(year, month, DateTime.DaysInMonth(year, month));
-                DateTime leaveEndInMonth = leave.EndDate > monthEnd ? monthEnd : leave.EndDate;
-
-                for (DateTime date = monthStart; date <= leaveEndInMonth; date = date.AddDays(1))
-                {
-                    if (date.DayOfWeek != DayOfWeek.Sunday)
-                    {
-                        leaveDaysInMonth += 1m;
-                    }
-                }
+                if (start.DayOfWeek != DayOfWeek.Sunday)
+                    total += 0.5m * perDaySalary;
+                continue;
             }
 
-            totalDeduction += leaveDaysInMonth * perDaySalary;
+            for (var d = start; d <= end; d = d.AddDays(1))
+                if (d.DayOfWeek != DayOfWeek.Sunday)
+                    total += perDaySalary;
         }
 
-        return Math.Round(totalDeduction, 2);
+        return Math.Round(total, 2);
     }
 
-    private int GetWorkingDaysInMonth(int year, int month)
+    private async Task AdjustLeaveBalanceAsync(LeaveApplication leave, string previousStatus, bool approve)
     {
-        int workingDays = 0;
-        int daysInMonth = DateTime.DaysInMonth(year, month);
+        if (leave.LeaveType == "Unpaid") return;
 
-        for (int day = 1; day <= daysInMonth; day++)
+        var balance = await _balanceRepo.GetByEmployeeYearAsync(leave.EmployeeId ?? string.Empty, leave.StartDate.Year);
+        if (balance == null || !balance.Balance.ContainsKey(leave.LeaveType)) return;
+
+        int days = (int)Math.Ceiling(leave.TotalDays);
+
+        if (previousStatus == "Approved")
         {
-            DateTime date = new DateTime(year, month, day);
-            if (date.DayOfWeek != DayOfWeek.Sunday)
-            {
-                workingDays++;
-            }
+            balance.Balance[leave.LeaveType] += days;
+            var usedPrev = balance.Used.TryGetValue(leave.LeaveType, out var u) ? u : 0;
+            balance.Used[leave.LeaveType] = Math.Max(0, usedPrev - days);
         }
 
-        return workingDays;
+        if (approve)
+        {
+            balance.Balance[leave.LeaveType] = Math.Max(0, balance.Balance[leave.LeaveType] - days);
+            var usedPrev = balance.Used.TryGetValue(leave.LeaveType, out var u) ? u : 0;
+            balance.Used[leave.LeaveType] = usedPrev + days;
+        }
+
+        balance.UpdatedOn = DateTime.UtcNow;
+        await _balanceRepo.UpdateAsync(balance);
     }
+
+    #endregion
 
     public async Task<IActionResult> Index()
     {
         var allLeaves = await _leaveRepo.GetAllAsync();
-        var allEmployees = await _employeeRepo.GetAllAsync();
-        var employeeDict = allEmployees.ToDictionary(e => e.Id);
+        var employees = (await _employeeRepo.GetAllAsync()).ToDictionary(e => e.Id);
 
-        var adminViewModel = allLeaves.Select(leave => new LeaveApplicationViewModel
-        {
-            LeaveId = leave.Id ?? string.Empty,
-            EmployeeName = employeeDict.GetValueOrDefault(leave.EmployeeId ?? string.Empty)?.Name ?? "Unknown",
-            EmployeeCode = employeeDict.GetValueOrDefault(leave.EmployeeId ?? string.Empty)?.EmployeeCode ?? "N/A",
-            LeaveType = leave.LeaveType,
-            StartDate = leave.StartDate,
-            EndDate = leave.EndDate,
-            TotalDays = leave.TotalDays,
-            IsHalfDay = leave.IsHalfDay,
-            Reason = leave.Reason,
-            Status = leave.Status,
-            AdminComments = leave.Comment
-        }).OrderByDescending(l => l.StartDate).ToList();
+        var model = allLeaves
+            .Select(leave =>
+            {
+                var emp = employees.TryGetValue(leave.EmployeeId ?? string.Empty, out var e) ? e : null;
+                return new LeaveApplicationViewModel
+                {
+                    LeaveId = leave.Id ?? string.Empty,
+                    EmployeeName = emp?.Name ?? "Unknown",
+                    EmployeeCode = emp?.EmployeeCode ?? "N/A",
+                    LeaveType = leave.LeaveType,
+                    StartDate = leave.StartDate,
+                    EndDate = leave.EndDate,
+                    TotalDays = leave.TotalDays,
+                    IsHalfDay = leave.IsHalfDay,
+                    Reason = leave.Reason,
+                    Status = leave.Status,
+                    AdminComments = leave.Comment
+                };
+            })
+            .OrderByDescending(l => l.StartDate)
+            .ToList();
 
-        return View(adminViewModel);
+        return View(model);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ApproveLeave(string id, string comment)
     {
-        if (string.IsNullOrEmpty(id))
-        {
-            TempData["Error"] = "Invalid leave application ID.";
-            return RedirectToAction(nameof(Index));
-        }
-
         var leave = await _leaveRepo.GetByIdAsync(id);
-        if (leave == null)
-        {
-            TempData["Error"] = "Leave application not found.";
+        if (leave == null || leave.StartDate <= DateTime.UtcNow.Date)
             return RedirectToAction(nameof(Index));
-        }
-
-        if (leave.StartDate <= DateTime.UtcNow.Date)
-        {
-            TempData["Error"] = "Cannot change status after leave has started.";
-            return RedirectToAction(nameof(Index));
-        }
 
         var adminUser = await _userManager.GetUserAsync(User);
         var previousStatus = leave.Status;
@@ -167,26 +162,21 @@ public class AdminController : Controller
         leave.DecidedBy = adminUser?.UserName ?? "Admin";
         leave.DecidedOn = DateTime.UtcNow;
 
-        if (leave.LeaveType != "Unpaid")
-        {
-            var balance = await _balanceRepo.GetByEmployeeYearAsync(leave.EmployeeId ?? string.Empty, leave.StartDate.Year);
-            if (balance != null && balance.Balance.ContainsKey(leave.LeaveType))
-            {
-                if (previousStatus == "Approved")
-                {
-                    balance.Balance[leave.LeaveType] += (int)leave.TotalDays;
-                    balance.Used[leave.LeaveType] = Math.Max(0, balance.Used[leave.LeaveType] - (int)leave.TotalDays);
-                }
+        await AdjustLeaveBalanceAsync(leave, previousStatus, approve: true);
+        await _leaveRepo.UpdateAsync(leave);
 
-                balance.Balance[leave.LeaveType] = Math.Max(0, balance.Balance[leave.LeaveType] - (int)Math.Ceiling(leave.TotalDays));
-                balance.Used[leave.LeaveType] = (balance.Used?.GetValueOrDefault(leave.LeaveType) ?? 0) + (int)Math.Ceiling(leave.TotalDays);
-                balance.UpdatedOn = DateTime.UtcNow;
-                await _balanceRepo.UpdateAsync(balance);
-            }
+        var employee = await _employeeRepo.GetByIdAsync(leave.EmployeeId);
+        if (employee != null && !string.IsNullOrEmpty(employee.IdentityUserId))
+        {
+            var notification = new Notification
+            {
+                UserId = employee.IdentityUserId,
+                Message = $"Your leave request for {leave.StartDate:dd/MM/yy} has been approved.",
+                Url = "/Employee/Profile"
+            };
+            await _notificationRepo.CreateAsync(notification);
         }
 
-        await _leaveRepo.UpdateAsync(leave);
-        TempData["Success"] = $"Leave application approved successfully for {leave.TotalDays} day(s).";
         return RedirectToAction(nameof(Index));
     }
 
@@ -194,30 +184,9 @@ public class AdminController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RejectLeave(string id, string comment)
     {
-        if (string.IsNullOrEmpty(id))
-        {
-            TempData["Error"] = "Invalid leave application ID.";
-            return RedirectToAction(nameof(Index));
-        }
-
         var leave = await _leaveRepo.GetByIdAsync(id);
-        if (leave == null)
-        {
-            TempData["Error"] = "Leave application not found.";
+        if (leave == null || leave.StartDate <= DateTime.UtcNow.Date || string.IsNullOrWhiteSpace(comment))
             return RedirectToAction(nameof(Index));
-        }
-
-        if (leave.StartDate <= DateTime.UtcNow.Date)
-        {
-            TempData["Error"] = "Cannot change status after leave has started.";
-            return RedirectToAction(nameof(Index));
-        }
-
-        if (string.IsNullOrWhiteSpace(comment))
-        {
-            TempData["Error"] = "A comment is required when rejecting a leave application.";
-            return RedirectToAction(nameof(Index));
-        }
 
         var adminUser = await _userManager.GetUserAsync(User);
         var previousStatus = leave.Status;
@@ -227,43 +196,42 @@ public class AdminController : Controller
         leave.DecidedBy = adminUser?.UserName ?? "Admin";
         leave.DecidedOn = DateTime.UtcNow;
 
-        if (previousStatus == "Approved" && leave.LeaveType != "Unpaid")
+        await AdjustLeaveBalanceAsync(leave, previousStatus, approve: false);
+        await _leaveRepo.UpdateAsync(leave);
+
+        var employee = await _employeeRepo.GetByIdAsync(leave.EmployeeId);
+        if (employee != null && !string.IsNullOrEmpty(employee.IdentityUserId))
         {
-            var balance = await _balanceRepo.GetByEmployeeYearAsync(leave.EmployeeId ?? string.Empty, leave.StartDate.Year);
-            if (balance != null && balance.Balance.ContainsKey(leave.LeaveType))
+            var notification = new Notification
             {
-                balance.Balance[leave.LeaveType] += (int)Math.Ceiling(leave.TotalDays);
-                balance.Used[leave.LeaveType] = Math.Max(0, balance.Used[leave.LeaveType] - (int)Math.Ceiling(leave.TotalDays));
-                balance.UpdatedOn = DateTime.UtcNow;
-                await _balanceRepo.UpdateAsync(balance);
-            }
+                UserId = employee.IdentityUserId,
+                Message = $"Your leave request for {leave.StartDate:dd/MM/yy} has been rejected. Reason: {comment}",
+                Url = "/Employee/Profile"
+            };
+            await _notificationRepo.CreateAsync(notification);
         }
 
-        await _leaveRepo.UpdateAsync(leave);
-        TempData["Success"] = "Leave application rejected successfully.";
         return RedirectToAction(nameof(Index));
     }
 
     [HttpPost]
     public async Task<IActionResult> DeleteLeave(string id)
     {
-        await _leaveRepo.DeleteAsync(id);
-        TempData["Success"] = "Leave application deleted successfully.";
+        if (!string.IsNullOrWhiteSpace(id))
+            await _leaveRepo.DeleteAsync(id);
+
         return RedirectToAction(nameof(Index));
     }
 
     [HttpPost]
     public async Task<IActionResult> RunPayroll(int year, int month)
     {
-        var existing = (await _slipRepo.GetAllAsync()).Any(s => s.Year == year && s.Month == month);
-        if (existing)
-        {
-            TempData["Error"] = "Payroll already run for this period.";
-            return RedirectToAction("Index");
-        }
+        var alreadyRun = (await _slipRepo.GetAllAsync()).Any(s => s.Year == year && s.Month == month);
+        if (alreadyRun) return RedirectToAction(nameof(Index));
 
-        var employees = await _employeeRepo.GetAllAsync();
-        foreach (var emp in employees.Where(e => e.Status == "Active"))
+        var employees = (await _employeeRepo.GetAllAsync()).Where(e => e.Status == "Active");
+
+        foreach (var emp in employees)
         {
             var structure = await _structureRepo.GetByDesignationAsync(emp.Designation);
             if (structure == null) continue;
@@ -275,13 +243,10 @@ public class AdminController : Controller
 
             decimal da = emp.BaseSalary * (decimal)(structure.Allowances?.DaPercent ?? 0) / 100m;
             decimal hra = emp.BaseSalary * (decimal)(structure.Allowances?.HraPercent ?? 0) / 100m;
-            decimal otherAllowances = 0;
-            if (structure.Allowances?.OtherAllowances != null)
-            {
-                foreach (var o in structure.Allowances.OtherAllowances)
-                    otherAllowances += emp.BaseSalary * (decimal)o.Percent / 100m;
-            }
+            decimal otherAllowances = structure.Allowances?.OtherAllowances?.Sum(o => emp.BaseSalary * (decimal)o.Percent / 100m) ?? 0m;
+
             decimal gross = emp.BaseSalary + da + hra + otherAllowances;
+
             decimal pfEmp = emp.BaseSalary * (decimal)(structure.Pf?.EmployeePercent ?? 0) / 100m;
             decimal pfEmpr = emp.BaseSalary * (decimal)(structure.Pf?.EmployerPercent ?? 0) / 100m;
             decimal edli = emp.BaseSalary * (decimal)(structure.Pf?.EdliPercent ?? 0) / 100m;
@@ -290,28 +255,26 @@ public class AdminController : Controller
             if (!string.IsNullOrEmpty(emp.TaxSlabId))
             {
                 var taxSlab = await _taxSlabRepo.GetByIdAsync(emp.TaxSlabId);
-                if (taxSlab != null && taxSlab.Slabs != null && taxSlab.Slabs.Count > 0)
+                if (taxSlab?.Slabs?.Count > 0)
                 {
                     decimal annualGross = gross * 12;
                     decimal annualTax = 0;
+
                     foreach (var slab in taxSlab.Slabs.OrderBy(s => s.From))
                     {
-                        decimal slabFrom = slab.From;
-                        decimal slabTo = slab.To ?? decimal.MaxValue;
-                        if (annualGross > slabFrom)
-                        {
-                            decimal taxable = Math.Min(annualGross, slabTo) - slabFrom;
-                            annualTax += taxable * (decimal)slab.Rate / 100m;
-                        }
+                        if (annualGross <= slab.From) break;
+                        decimal taxable = Math.Min(annualGross, slab.To ?? decimal.MaxValue) - slab.From;
+                        annualTax += taxable * (decimal)slab.Rate / 100m;
                     }
+
                     if (taxSlab.CessPercent > 0)
                         annualTax += annualTax * (decimal)taxSlab.CessPercent / 100m;
+
                     tax = Math.Round(annualTax / 12, 2);
                 }
             }
 
-            decimal otherDeductions = 0;
-            decimal totalDeductions = pfEmp + tax + otherDeductions + unpaidDeduction;
+            decimal totalDeductions = pfEmp + tax + unpaidDeduction;
             decimal netPay = gross - totalDeductions;
 
             var slip = new SalarySlip
@@ -329,67 +292,67 @@ public class AdminController : Controller
                 PfEmployer = pfEmpr,
                 Edli = edli,
                 Tax = tax,
-                OtherDeductions = otherDeductions,
+                OtherDeductions = 0,
                 UnpaidLeaveDeduction = unpaidDeduction,
                 TotalDeductions = totalDeductions,
                 NetPay = netPay,
                 GeneratedOn = DateTime.UtcNow
             };
-            var pdfPath = await GenerateSalarySlipPdf(emp, slip, year, month);
-            slip.PdfUrl = pdfPath;
+
+            slip.PdfUrl = await GenerateSalarySlipPdf(emp, slip, year, month);
+
             await _slipRepo.CreateAsync(slip);
         }
-        TempData["Success"] = "Payroll generated successfully.";
-        return RedirectToAction("Index");
+
+        return RedirectToAction(nameof(Index));
     }
 
     private async Task<string> GenerateSalarySlipPdf(Employee emp, SalarySlip slip, int year, int month)
     {
         var fileName = $"SalarySlip_{emp.EmployeeCode}_{year}_{month}.pdf";
         var folder = Path.Combine(_env.WebRootPath, "salaryslips");
-        if (!Directory.Exists(folder))
-            Directory.CreateDirectory(folder);
+        Directory.CreateDirectory(folder);
         var filePath = Path.Combine(folder, fileName);
 
         await Task.Run(() =>
         {
-            QuestPDF.Fluent.Document.Create(container =>
+            Document.Create(container =>
             {
                 container.Page(page =>
                 {
                     page.Margin(40);
-                    page.Header().AlignCenter().Text($"Salary Slip - {emp.Name}").SemiBold().FontSize(20).FontColor(Colors.Blue.Medium);
+                    page.Header().AlignCenter()
+                        .Text($"Salary Slip - {emp.Name}")
+                        .SemiBold().FontSize(20).FontColor(Colors.Blue.Medium);
 
-                    page.Content().Column(column =>
+                    page.Content().Column(col =>
                     {
-                        column.Spacing(10);
-                        var monthName = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(month);
-                        column.Item().Text($"Period: {monthName} {year}");
-                        column.Item().Text($"Employee Code: {emp.EmployeeCode}");
-                        column.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+                        col.Spacing(10);
+                        col.Item().Text($"Period: {CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(month)} {year}");
+                        col.Item().Text($"Employee Code: {emp.EmployeeCode}");
+                        col.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
 
-                        column.Item().PaddingTop(10).Text("Earnings").SemiBold().FontSize(14);
-                        column.Item().Text(text =>
+                        col.Item().PaddingTop(10).Text("Earnings").SemiBold().FontSize(14);
+                        col.Item().Text(t =>
                         {
-                            text.Span("Basic: ").SemiBold();
-                            text.Span($"{slip.Basic:N2}");
+                            t.Span("Basic: ").SemiBold();
+                            t.Span($"{slip.Basic:N2}");
                         });
-                        column.Item().Text($"DA: {slip.Da:N2}");
-                        column.Item().Text($"HRA: {slip.Hra:N2}");
-                        column.Item().Text($"Other Allowances: {slip.OtherAllowances:N2}");
-                        column.Item().Text($"Gross Earnings: {slip.GrossEarnings:N2}").Bold();
+                        col.Item().Text($"DA: {slip.Da:N2}");
+                        col.Item().Text($"HRA: {slip.Hra:N2}");
+                        col.Item().Text($"Other Allowances: {slip.OtherAllowances:N2}");
+                        col.Item().Text($"Gross Earnings: {slip.GrossEarnings:N2}").Bold();
 
-                        column.Item().PaddingTop(10).Text("Deductions").SemiBold().FontSize(14);
-                        column.Item().Text($"PF Employee: {slip.PfEmployee:N2}");
-                        column.Item().Text($"Tax: {slip.Tax:N2}");
+                        col.Item().PaddingTop(10).Text("Deductions").SemiBold().FontSize(14);
+                        col.Item().Text($"PF Employee: {slip.PfEmployee:N2}");
+                        col.Item().Text($"Tax: {slip.Tax:N2}");
                         if (slip.UnpaidLeaveDeduction > 0)
-                        {
-                            column.Item().Text($"Unpaid Leave Deduction: {slip.UnpaidLeaveDeduction:N2}").FontColor(Colors.Red.Medium);
-                        }
-                        column.Item().Text($"Total Deductions: {slip.TotalDeductions:N2}").Bold();
+                            col.Item().Text($"Unpaid Leave Deduction: {slip.UnpaidLeaveDeduction:N2}")
+                                     .FontColor(Colors.Red.Medium);
+                        col.Item().Text($"Total Deductions: {slip.TotalDeductions:N2}").Bold();
 
-                        column.Item().PaddingTop(15).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
-                        column.Item().AlignRight().Text($"Net Pay: {slip.NetPay:N2}").Bold().FontSize(16);
+                        col.Item().PaddingTop(15).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+                        col.Item().AlignRight().Text($"Net Pay: {slip.NetPay:N2}").Bold().FontSize(16);
                     });
 
                     page.Footer().AlignCenter().Text(x =>
@@ -407,11 +370,7 @@ public class AdminController : Controller
     [AllowAnonymous]
     public IActionResult DownloadSlip(string file)
     {
-        var folder = Path.Combine(_env.WebRootPath, "salaryslips");
-        var filePath = Path.Combine(folder, file);
-        if (!System.IO.File.Exists(filePath))
-            return NotFound();
-        var bytes = System.IO.File.ReadAllBytes(filePath);
-        return File(bytes, "application/pdf", file);
+        var path = Path.Combine(_env.WebRootPath, "salaryslips", file);
+        return File(System.IO.File.ReadAllBytes(path), "application/pdf", file);
     }
 }

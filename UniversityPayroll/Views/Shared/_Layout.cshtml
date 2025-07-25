@@ -50,6 +50,11 @@
                                 </span>
                             </li>
                             <li class="nav-item">
+                                <a asp-controller="Notification" asp-action="Index" class="nav-link text-dark">
+                                    <i class="fas fa-bell"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
                                     <button type="submit" class="btn btn-outline-danger">
                                         <i class="fas fa-sign-out-alt"></i> Logout

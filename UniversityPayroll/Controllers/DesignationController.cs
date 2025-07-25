@@ -46,8 +46,7 @@ namespace UniversityPayroll.Controllers
 
             await _designationRepo.CreateAsync(model);
 
-            await CreateDefaultSalaryStructure(model.Name);
-            await CreateDefaultLeaveEntitlement(model.Name);
+            
 
             return RedirectToAction(nameof(Index));
             
@@ -78,42 +77,8 @@ namespace UniversityPayroll.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        private async Task CreateDefaultSalaryStructure(string designation)
-        {
-            var existing = await _salaryStructRepo.GetByDesignationAsync(designation);
-            if (existing == null)
-            {
-                var allowances = designation.Contains("Professor") ?
-                    new Allowances { DaPercent = 12, HraPercent = 20 } :
-                    new Allowances { DaPercent = 8, HraPercent = 15 };
+       
 
-                var incrementPercent = designation.Contains("Professor") ? 5 : 3;
-
-                await _salaryStructRepo.CreateAsync(new SalaryStructure
-                {
-                    Designation = designation,
-                    Allowances = allowances,
-                    Pf = new PfRules { EmployeePercent = 12, EmployerPercent = 12, EdliPercent = 0.5 },
-                    AnnualIncrementPercent = incrementPercent
-                });
-            }
-        }
-
-        private async Task CreateDefaultLeaveEntitlement(string designation)
-        {
-            var existing = await _entitlementRepo.GetByDesignationAsync(designation);
-            if (existing == null)
-            {
-                var entitlements = designation.Contains("Professor") ?
-                    new Dictionary<string, int> { { "Sick", 15 }, { "Casual", 8 } } :
-                    new Dictionary<string, int> { { "Sick", 10 }, { "Casual", 6 } };
-
-                await _entitlementRepo.CreateAsync(new LeaveEntitlement
-                {
-                    Designation = designation,
-                    Entitlements = entitlements
-                });
-            }
-        }
+        
     }
 }

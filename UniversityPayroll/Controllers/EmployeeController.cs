@@ -357,17 +357,16 @@ namespace UniversityPayroll.Controllers
                     };
                     await _leaveRepo.CreateAsync(unpaidLeave);
                 }
-
-                TempData["Success"] = $"Leave application submitted. {paidDays} days as {model.LeaveType} and {unpaidDays} days as unpaid leave.";
             }
             else
             {
                 await _leaveRepo.CreateAsync(model);
-                TempData["Success"] = "Leave application submitted successfully.";
             }
 
             return RedirectToAction(nameof(Profile));
         }
+
+       
 
         private async Task<SalaryStructure> EnsureSalaryStructureExists(string designation)
         {

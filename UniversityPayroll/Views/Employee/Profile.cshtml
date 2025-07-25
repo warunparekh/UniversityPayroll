@@ -117,8 +117,8 @@
                                 {
                                     <tr>
                                         <td><span class="badge @(leave.LeaveType == "Unpaid" ? "bg-danger" : "bg-primary")">@leave.LeaveType</span></td>
-                                        <td>@leave.StartDate:dd/MM/yyyy</td>
-                                        <td>@leave.EndDate:dd/MM/yyyy</td>
+                                        <td>@leave.StartDate</td>
+                                        <td>@leave.EndDate</td>
                                         <td>@leave.TotalDays</td>
                                         <td><span class="d-inline-block text-truncate" style="max-width: 150px;" title="@leave.Reason">@leave.Reason</span></td>
                                         <td>
@@ -250,12 +250,7 @@
     </div>
 </div>
 
-<style>
-    .sidebar {
-        width: 220px;
-        min-height: 100vh;
-    }
-</style>
+
 
 @section Scripts {
     <script>

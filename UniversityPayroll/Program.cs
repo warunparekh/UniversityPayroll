@@ -28,6 +28,7 @@ builder.Services.AddScoped<SalarySlipRepository>();
 builder.Services.AddScoped<LeaveTypeRepository>();
 builder.Services.AddScoped<LeaveEntitlementRepository>();
 builder.Services.AddScoped<DesignationRepository>();
+builder.Services.AddScoped<NotificationRepository>();
 
 builder.Services
     .AddIdentityMongoDbProvider<ApplicationUser, MongoRole>(identityOptions =>

@@ -1,0 +1,27 @@
+﻿@model List<UniversityPayroll.Models.Notification>
+@{
+    ViewData["Title"] = "Notifications";
+}
+
+<h2 class="mb-4">Notifications</h2>
+
+@if (Model.Any())
+{
+    <div class="list-group">
+        @foreach (var notification in Model)
+        {
+            <a href="@notification.Url" class="list-group-item list-group-item-action flex-column align-items-start list-group-item-primary">
+                <div class="d-flex w-100 justify-content-between">
+                    <p class="mb-1">@notification.Message</p>
+                    <small>@notification.CreatedAt.ToString("g")</small>
+                </div>
+            </a>
+        }
+    </div>
+}
+else
+{
+    <div class="alert alert-info text-center">
+        You have no new notifications.
+    </div>
+}
