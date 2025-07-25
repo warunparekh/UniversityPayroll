@@ -364,3 +364,10 @@ E:\asp projects\UniversityPayroll\obj\Debug\net8.0\refint\UniversityPayroll.dll
 E:\asp projects\UniversityPayroll\obj\Debug\net8.0\UniversityPayroll.pdb
 E:\asp projects\UniversityPayroll\obj\Debug\net8.0\UniversityPayroll.genruntimeconfig.cache
 E:\asp projects\UniversityPayroll\obj\Debug\net8.0\ref\UniversityPayroll.dll
+D:\internship_sem7\UniversityPayroll\UniversityPayroll\bin\Debug\net8.0\AWSSDK.Core.dll
+D:\internship_sem7\UniversityPayroll\UniversityPayroll\bin\Debug\net8.0\AWSSDK.SecurityToken.dll
+D:\internship_sem7\UniversityPayroll\UniversityPayroll\bin\Debug\net8.0\MongoDB.Driver.Core.dll
+D:\internship_sem7\UniversityPayroll\UniversityPayroll\bin\Debug\net8.0\MongoDB.Libmongocrypt.dll
+D:\internship_sem7\UniversityPayroll\UniversityPayroll\bin\Debug\net8.0\runtimes\linux\native\libmongocrypt.so
+D:\internship_sem7\UniversityPayroll\UniversityPayroll\bin\Debug\net8.0\runtimes\osx\native\libmongocrypt.dylib
+D:\internship_sem7\UniversityPayroll\UniversityPayroll\bin\Debug\net8.0\runtimes\win\native\mongocrypt.dll
