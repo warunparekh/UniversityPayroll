@@ -70,7 +70,6 @@ namespace UniversityPayroll.Controllers
 
             var taxSlabs = await _taxRepo.GetAllAsync();
             ViewBag.TaxSlabs = new SelectList(taxSlabs, "Id", "FinancialYear");
-
             return View();
         }
 
@@ -97,10 +96,8 @@ namespace UniversityPayroll.Controllers
 
             var designations = await _designationRepo.GetActiveAsync();
             ViewBag.Designations = new SelectList(designations, "Name", "Name", model.Designation);
-
             var taxSlabs = await _taxRepo.GetAllAsync();
             ViewBag.TaxSlabs = new SelectList(taxSlabs, "Id", "FinancialYear", model.TaxSlabId);
-
             return View(model);
         }
 
