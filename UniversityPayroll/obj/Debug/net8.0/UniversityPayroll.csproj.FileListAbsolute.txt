@@ -357,7 +357,6 @@ E:\asp projects\UniversityPayroll\obj\Debug\net8.0\staticwebassets.build.json
 E:\asp projects\UniversityPayroll\obj\Debug\net8.0\staticwebassets.build.json.cache
 E:\asp projects\UniversityPayroll\obj\Debug\net8.0\staticwebassets.development.json
 E:\asp projects\UniversityPayroll\obj\Debug\net8.0\staticwebassets.build.endpoints.json
-E:\asp projects\UniversityPayroll\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
 E:\asp projects\UniversityPayroll\obj\Debug\net8.0\Universi.5EA05016.Up2Date
 E:\asp projects\UniversityPayroll\obj\Debug\net8.0\UniversityPayroll.dll
 E:\asp projects\UniversityPayroll\obj\Debug\net8.0\refint\UniversityPayroll.dll
