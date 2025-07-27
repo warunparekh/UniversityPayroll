@@ -1,7 +1,5 @@
 @model List<UniversityPayroll.Models.Designation>
-@{
-    ViewData["Title"] = "Designations";
-}
+@{ ViewData["Title"] = "Designations"; }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>Designations</h2>
@@ -25,16 +23,7 @@
                 <tr>
                     <td>@designation.Name</td>
                     <td>@designation.Description</td>
-                    <td>
-                        @if (designation.IsActive)
-                        {
-                            <span class="badge bg-success">Active</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-secondary">Inactive</span>
-                        }
-                    </td>
+                    <td><span class="badge @(designation.IsActive ? "bg-success" : "bg-secondary")">@(designation.IsActive ? "Active" : "Inactive")</span></td>
                     <td>@designation.CreatedDate.ToString("dd/MM/yyyy")</td>
                     <td>
                         <a asp-action="Edit" asp-route-id="@designation.Id" class="btn btn-sm btn-outline-primary">Edit</a>

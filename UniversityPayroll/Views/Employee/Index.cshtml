@@ -28,16 +28,7 @@
                     <td>@employee.Name</td>
                     <td>@employee.Designation</td>
                     <td>@employee.BaseSalary.ToString("C")</td>
-                    <td>
-                        @if (employee.Status == "Active")
-                        {
-                            <span class="badge bg-success">Active</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-secondary">Inactive</span>
-                        }
-                    </td>
+                    <td><span class="badge @(employee.Status == "Active" ? "bg-success" : "bg-secondary")">@employee.Status</span></td>
                     <td>
                         <a asp-action="Edit" asp-route-id="@employee.Id" class="btn btn-sm btn-outline-primary">Edit</a>
                         <form asp-action="Delete" asp-route-id="@employee.Id" method="post" class="d-inline">

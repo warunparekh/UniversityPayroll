@@ -1,10 +1,7 @@
 @model UniversityPayroll.Models.Designation
-@{
-    ViewData["Title"] = "Add Designation";
-}
+@{ ViewData["Title"] = "Add Designation"; }
 
 <h2>Add New Designation</h2>
-
 <form asp-action="Create" method="post">
     <div class="mb-3">
         <label asp-for="Name" class="form-label">Name</label>
@@ -26,6 +23,4 @@
     <a asp-action="Index" class="btn btn-secondary">Cancel</a>
 </form>
 
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-}
+@section Scripts { @{await Html.RenderPartialAsync("_ValidationScriptsPartial");} }

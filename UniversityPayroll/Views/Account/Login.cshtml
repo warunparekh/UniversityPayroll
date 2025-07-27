@@ -1,7 +1,5 @@
 @model UniversityPayroll.ViewModels.LoginViewModel
-@{
-    ViewData["Title"] = "Log in";
-}
+@{ ViewData["Title"] = "Log in"; }
 
 <div class="container mt-5 animate__animated animate__fadeInDown">
     <div class="row justify-content-center">
@@ -25,9 +23,7 @@
                         </div>
                         <div class="form-check mb-3">
                             <input class="form-check-input" asp-for="RememberMe" />
-                            <label asp-for="RememberMe" class="form-check-label">
-                                @Html.DisplayNameFor(m => m.RememberMe)
-                            </label>
+                            <label asp-for="RememberMe" class="form-check-label">@Html.DisplayNameFor(m => m.RememberMe)</label>
                         </div>
                         <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-success animate__animated animate__pulse">Log in</button>
                     </form>
@@ -37,6 +33,4 @@
     </div>
 </div>
 
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

@@ -6,9 +6,7 @@
 
 <div class="d-flex">
     <aside class="bg-light sidebar p-3">
-        <h5 class="text-center py-3 border-bottom">
-            <i class="fas fa-user-cog"></i> Admin Panel
-        </h5>
+        <h5 class="text-center py-3 border-bottom"><i class="fas fa-user-cog"></i> Admin Panel</h5>
         <ul class="nav flex-column">
             <li class="nav-item"><a asp-controller="Employee" asp-action="Index" class="nav-link"><i class="fas fa-users"></i> Employees</a></li>
             <li class="nav-item"><a asp-controller="Designation" asp-action="Index" class="nav-link"><i class="fas fa-briefcase"></i> Designations</a></li>
@@ -20,7 +18,6 @@
     </aside>
     <main class="flex-grow-1 p-4">
         <h2 class="mb-4">Leave Management</h2>
-
         <section class="card mb-4">
             <div class="card-header"><h5><i class="fas fa-calendar-alt"></i> All Leave Applications</h5></div>
             <div class="card-body table-responsive">
@@ -46,24 +43,17 @@
                                         <strong>@leave.EmployeeName</strong><br>
                                         <small class="text-muted">@leave.EmployeeCode</small>
                                     </td>
-                                    <td>
-                                        <span class="badge @(leave.LeaveType == "Unpaid" ? "bg-danger" : "bg-primary")">
-                                            @leave.LeaveType
-                                        </span>
-                                    </td>
+                                    <td><span class="badge @(leave.LeaveType == "Unpaid" ? "bg-danger" : "bg-primary")">@leave.LeaveType</span></td>
                                     <td>@leave.StartDate.ToString("dd/MM/yy") - @leave.EndDate.ToString("dd/MM/yy")</td>
                                     <td>@leave.TotalDays</td>
+                                    <td><span class="d-inline-block text-truncate" style="max-width: 150px;" title="@leave.Reason">@leave.Reason</span></td>
                                     <td>
-                                        <span class="d-inline-block text-truncate" style="max-width: 150px;" title="@leave.Reason">@leave.Reason</span>
-                                    </td>
-                                    <td>
-                                        @switch (leave.Status.ToLower())
-                                        {
-                                            case "pending": <span class="badge bg-warning text-dark">@leave.Status</span>; break;
-                                            case "approved": <span class="badge bg-success">@leave.Status</span>; break;
-                                            case "rejected": <span class="badge bg-danger">@leave.Status</span>; break;
-                                            default: <span class="badge bg-secondary">@leave.Status</span>; break;
-                                        }
+                                        <span class="badge @(leave.Status.ToLower() switch {
+                                            "pending" => "bg-warning text-dark",
+                                            "approved" => "bg-success",
+                                            "rejected" => "bg-danger",
+                                            _ => "bg-secondary"
+                                        })">@leave.Status</span>
                                     </td>
                                     <td>
                                         @if (leave.Status == "Pending")
@@ -98,44 +88,17 @@
                     <div class="col-md-4">
                         <label for="year" class="form-label">Year</label>
                         <select name="year" id="year" class="form-select" required>
-                            @for (int i = DateTime.Now.Year; i >= DateTime.Now.Year - 5; i--)
-                            {
-                                if (i == DateTime.Now.Year)
-                                {
-                                    <option value="@i" selected="selected">@i</option>
-                                }
-                                else
-                                {
-                                    <option value="@i">@i</option>
-                                }
-                            }
+                            @for (int i = DateTime.Now.Year; i >= DateTime.Now.Year - 5; i--) { <option value="@i" selected="@(i == DateTime.Now.Year)">@i</option> }
                         </select>
                     </div>
                     <div class="col-md-4">
                         <label for="month" class="form-label">Month</label>
                         <select name="month" id="month" class="form-select" required>
-                            @for (int m = 1; m <= 12; m++)
-                            {
-                                if (m == DateTime.Now.Month)
-                                {
-                                    <option value="@m" selected="selected">
-                                        @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m)
-                                    </option>
-                                }
-                                else
-                                {
-                                    <option value="@m">
-                                        @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m)
-                                    </option>
-                                }
-                            }
+                            @for (int m = 1; m <= 12; m++) { <option value="@m" selected="@(m == DateTime.Now.Month)">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m)</option> }
                         </select>
-
                     </div>
                     <div class="col-md-4 d-flex align-items-end">
-                        <button type="submit" class="btn btn-success" onclick="return confirm('Are you sure you want to generate payroll for the selected period?')">
-                            <i class="fas fa-play"></i> Generate Payroll
-                        </button>
+                        <button type="submit" class="btn btn-success" onclick="return confirm('Are you sure you want to generate payroll for the selected period?')"><i class="fas fa-play"></i> Generate Payroll</button>
                     </div>
                 </form>
             </div>
@@ -184,8 +147,6 @@
         </form>
     </div>
 </div>
-
-
 
 @section Scripts {
     <script>

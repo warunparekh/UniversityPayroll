@@ -1,12 +1,8 @@
 ﻿@model List<UniversityPayroll.Models.SalaryStructure>
-@{
-    ViewData["Title"] = "Salary Structures";
-}
+@{ ViewData["Title"] = "Salary Structures"; }
 
 <h2>Salary Structures</h2>
-<p>
-    <a asp-action="Create" class="btn btn-primary">New Structure</a>
-</p>
+<p><a asp-action="Create" class="btn btn-primary">New Structure</a></p>
 
 <table class="table table-striped">
     <thead>
@@ -35,10 +31,7 @@
                 <td>
                     <a asp-action="Edit" asp-route-id="@s.Id" class="btn btn-sm btn-secondary">Edit</a>
                     <form asp-action="Delete" asp-route-id="@s.Id" method="post" style="display:inline">
-                        <button type="submit" class="btn btn-sm btn-danger"
-                                onclick="return confirm('Delete this structure?');">
-                            Delete
-                        </button>
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this structure?');">Delete</button>
                     </form>
                 </td>
             </tr>
