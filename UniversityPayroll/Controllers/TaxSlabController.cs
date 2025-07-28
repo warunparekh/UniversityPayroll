@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UniversityPayroll.Data;
 using UniversityPayroll.Models;
+using System.Collections.Generic;
 
 namespace UniversityPayroll.Controllers
 {
@@ -18,28 +19,38 @@ namespace UniversityPayroll.Controllers
             _repo = repo;
         }
 
-        public async Task<IActionResult> Index()
+        #region Helper Methods
+
+        private static TaxSlab CreateNewTaxSlab() => new()
         {
-            var list = await _repo.GetAllAsync();
-            return View(list);
+            Slabs = Enumerable.Range(0, 4).Select(_ => new Slab()).ToList()
+        };
+
+        private static void EnsureMinimumSlabs(TaxSlab taxSlab)
+        {
+            while (taxSlab.Slabs.Count < 4)
+                taxSlab.Slabs.Add(new Slab());
         }
+
+        private static List<Slab> FilterValidSlabs(IEnumerable<Slab> slabs) =>
+            slabs.Where(s => s.Rate > 0).ToList();
+
+        #endregion
+
+        public async Task<IActionResult> Index() => View(await _repo.GetAllAsync());
 
         [HttpGet]
-        public IActionResult Create()
-        {
-            var model = new TaxSlab
-            {
-                Slabs = Enumerable.Range(0, 4).Select(_ => new Slab()).ToList()
-            };
-            return View(model);
-        }
+        public IActionResult Create() => View(CreateNewTaxSlab());
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(TaxSlab model)
         {
-            model.CreatedOn = DateTime.UtcNow;
-            model.UpdatedOn = DateTime.UtcNow;
-            model.Slabs = model.Slabs.Where(s => s.Rate > 0).ToList();
+            var now = DateTime.UtcNow;
+            model.CreatedOn = now;
+            model.UpdatedOn = now;
+            model.Slabs = FilterValidSlabs(model.Slabs);
+            
             await _repo.CreateAsync(model);
             return RedirectToAction(nameof(Index));
         }
@@ -49,20 +60,24 @@ namespace UniversityPayroll.Controllers
         {
             var item = await _repo.GetByIdAsync(id);
             if (item == null) return NotFound();
-            while (item.Slabs.Count < 4) item.Slabs.Add(new Slab());
+            
+            EnsureMinimumSlabs(item);
             return View(item);
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(TaxSlab model)
         {
             model.UpdatedOn = DateTime.UtcNow;
-            model.Slabs = model.Slabs.Where(s => s.Rate > 0).ToList();
+            model.Slabs = FilterValidSlabs(model.Slabs);
+            
             await _repo.UpdateAsync(model);
             return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(string id)
         {
             await _repo.DeleteAsync(id);

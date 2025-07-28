@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using UniversityPayroll.Data;
 using UniversityPayroll.Models;
+using System.Collections.Generic;
 
 namespace UniversityPayroll.Controllers
 {
@@ -25,38 +26,46 @@ namespace UniversityPayroll.Controllers
             _designationRepo = designationRepo;
         }
 
-        public async Task<IActionResult> Index()
+        #region Helper Methods
+
+        private async Task PopulateViewBags(string? selectedDesignation = null)
         {
-            var list = await _repo.GetAllAsync();
-            return View(list);
+            var designations = await _designationRepo.GetActiveAsync();
+            ViewBag.Designations = new SelectList(designations, "Name", "Name", selectedDesignation);
+            ViewBag.LeaveTypes = await _typeRepo.GetAllAsync();
         }
+
+        private async Task<Dictionary<string, int>> FilterValidEntitlements(Dictionary<string, int> entitlements)
+        {
+            var validLeaveTypes = (await _typeRepo.GetAllAsync()).Select(t => t.Name).ToHashSet();
+            return entitlements
+                .Where(kv => validLeaveTypes.Contains(kv.Key) && kv.Value > 0)
+                .ToDictionary(kv => kv.Key, kv => kv.Value);
+        }
+
+        private static LeaveEntitlement CreateNewLeaveEntitlement() => new()
+        {
+            Entitlements = new Dictionary<string, int>()
+        };
+
+        #endregion
+
+        public async Task<IActionResult> Index() => View(await _repo.GetAllAsync());
 
         [HttpGet]
         public async Task<IActionResult> Create()
         {
-            var designations = await _designationRepo.GetActiveAsync();
-            ViewBag.Designations = new SelectList(designations, "Name", "Name");
-            ViewBag.LeaveTypes = await _typeRepo.GetAllAsync();
-            return View(new LeaveEntitlement { Entitlements = new System.Collections.Generic.Dictionary<string, int>() });
+            await PopulateViewBags();
+            return View(CreateNewLeaveEntitlement());
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(LeaveEntitlement model)
         {
-            if (ModelState.IsValid)
-            {
-                var leaveTypes = (await _typeRepo.GetAllAsync()).Select(t => t.Name).ToHashSet();
-                model.Entitlements = model.Entitlements
-                    .Where(kv => leaveTypes.Contains(kv.Key))
-                    .ToDictionary(kv => kv.Key, kv => kv.Value);
-                await _repo.CreateAsync(model);
-                return RedirectToAction(nameof(Index));
-            }
-
-            var designations = await _designationRepo.GetActiveAsync();
-            ViewBag.Designations = new SelectList(designations, "Name", "Name", model.Designation);
-            ViewBag.LeaveTypes = await _typeRepo.GetAllAsync();
-            return View(model);
+            model.Entitlements = await FilterValidEntitlements(model.Entitlements);
+            await _repo.CreateAsync(model);
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpGet]
@@ -65,32 +74,21 @@ namespace UniversityPayroll.Controllers
             var item = await _repo.GetByIdAsync(id);
             if (item == null) return NotFound();
 
-            var designations = await _designationRepo.GetActiveAsync();
-            ViewBag.Designations = new SelectList(designations, "Name", "Name", item.Designation);
-            ViewBag.LeaveTypes = await _typeRepo.GetAllAsync();
+            await PopulateViewBags(item.Designation);
             return View(item);
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(LeaveEntitlement model)
         {
-            if (ModelState.IsValid)
-            {
-                var leaveTypes = (await _typeRepo.GetAllAsync()).Select(t => t.Name).ToHashSet();
-                model.Entitlements = model.Entitlements
-                    .Where(kv => leaveTypes.Contains(kv.Key))
-                    .ToDictionary(kv => kv.Key, kv => kv.Value);
-                await _repo.UpdateAsync(model);
-                return RedirectToAction(nameof(Index));
-            }
-
-            var designations = await _designationRepo.GetActiveAsync();
-            ViewBag.Designations = new SelectList(designations, "Name", "Name", model.Designation);
-            ViewBag.LeaveTypes = await _typeRepo.GetAllAsync();
-            return View(model);
+            model.Entitlements = await FilterValidEntitlements(model.Entitlements);
+            await _repo.UpdateAsync(model);
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(string id)
         {
             await _repo.DeleteAsync(id);

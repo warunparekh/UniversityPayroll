@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using UniversityPayroll.Data;
 using UniversityPayroll.Models;
+using System.Threading.Tasks;
 
 namespace UniversityPayroll.Controllers
 {
@@ -9,34 +10,20 @@ namespace UniversityPayroll.Controllers
     public class DesignationController : Controller
     {
         private readonly DesignationRepository _designationRepo;
-        private readonly SalaryStructureRepository _salaryStructRepo;
-        private readonly LeaveEntitlementRepository _entitlementRepo;
 
-        public DesignationController(
-            DesignationRepository designationRepo,
-            SalaryStructureRepository salaryStructRepo,
-            LeaveEntitlementRepository entitlementRepo)
+        public DesignationController(DesignationRepository designationRepo)
         {
             _designationRepo = designationRepo;
-            _salaryStructRepo = salaryStructRepo;
-            _entitlementRepo = entitlementRepo;
         }
 
-        public async Task<IActionResult> Index()
-        {
-            var designations = await _designationRepo.GetAllAsync();
-            return View(designations);
-        }
+        public async Task<IActionResult> Index() => View(await _designationRepo.GetAllAsync());
 
-        public IActionResult Create()
-        {
-            return View();
-        }
+        public IActionResult Create() => View();
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Designation model)
         {
-           
             var existing = await _designationRepo.GetByNameAsync(model.Name);
             if (existing != null)
             {
@@ -45,40 +32,29 @@ namespace UniversityPayroll.Controllers
             }
 
             await _designationRepo.CreateAsync(model);
-
-            
-
             return RedirectToAction(nameof(Index));
-            
-            return View(model);
         }
 
         public async Task<IActionResult> Edit(string id)
         {
             var designation = await _designationRepo.GetByIdAsync(id);
-            if (designation == null) return NotFound();
-            return View(designation);
+            return designation == null ? NotFound() : View(designation);
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(Designation model)
         {
-            
             await _designationRepo.UpdateAsync(model);
             return RedirectToAction(nameof(Index));
-            
-            return View(model);
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(string id)
         {
             await _designationRepo.DeleteAsync(id);
             return RedirectToAction(nameof(Index));
         }
-
-       
-
-        
     }
 }

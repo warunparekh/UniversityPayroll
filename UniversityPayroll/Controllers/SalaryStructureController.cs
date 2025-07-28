@@ -22,40 +22,39 @@ namespace UniversityPayroll.Controllers
             _designationRepo = designationRepo;
         }
 
-        public async Task<IActionResult> Index()
+        #region Helper Methods
+
+        private async Task PopulateDesignations(string? selectedDesignation = null)
         {
-            var list = await _repo.GetAllAsync();
-            return View(list);
+            var designations = await _designationRepo.GetActiveAsync();
+            ViewBag.Designations = new SelectList(designations, "Name", "Name", selectedDesignation);
         }
+
+        private static SalaryStructure CreateNewSalaryStructure() => new()
+        {
+            Allowances = new Allowances(),
+            Pf = new PfRules()
+        };
+
+        #endregion
+
+        public async Task<IActionResult> Index() => View(await _repo.GetAllAsync());
 
         [HttpGet]
         public async Task<IActionResult> Create()
         {
-            var designations = await _designationRepo.GetActiveAsync();
-            ViewBag.Designations = new SelectList(designations, "Name", "Name");
-
-            var model = new SalaryStructure
-            {
-                Allowances = new Allowances(),
-                Pf = new PfRules()
-            };
-            return View(model);
+            await PopulateDesignations();
+            return View(CreateNewSalaryStructure());
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(SalaryStructure model)
         {
-            if (ModelState.IsValid)
-            {
-                model.CreatedOn = DateTime.UtcNow;
-                model.UpdatedOn = DateTime.UtcNow;
-                await _repo.CreateAsync(model);
-                return RedirectToAction(nameof(Index));
-            }
-
-            var designations = await _designationRepo.GetActiveAsync();
-            ViewBag.Designations = new SelectList(designations, "Name", "Name", model.Designation);
-            return View(model);
+            model.CreatedOn = DateTime.UtcNow;
+            model.UpdatedOn = DateTime.UtcNow;
+            await _repo.CreateAsync(model);
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpGet]
@@ -64,28 +63,21 @@ namespace UniversityPayroll.Controllers
             var model = await _repo.GetByIdAsync(id);
             if (model == null) return NotFound();
 
-            var designations = await _designationRepo.GetActiveAsync();
-            ViewBag.Designations = new SelectList(designations, "Name", "Name", model.Designation);
-
+            await PopulateDesignations(model.Designation);
             return View(model);
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(SalaryStructure model)
         {
-            if (ModelState.IsValid)
-            {
-                model.UpdatedOn = DateTime.UtcNow;
-                await _repo.UpdateAsync(model);
-                return RedirectToAction(nameof(Index));
-            }
-
-            var designations = await _designationRepo.GetActiveAsync();
-            ViewBag.Designations = new SelectList(designations, "Name", "Name", model.Designation);
-            return View(model);
+            model.UpdatedOn = DateTime.UtcNow;
+            await _repo.UpdateAsync(model);
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(string id)
         {
             await _repo.DeleteAsync(id);

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using UniversityPayroll.Data;
 using UniversityPayroll.Models;
 using UniversityPayroll.ViewModels;
+using System.Collections.Generic;
 
 namespace UniversityPayroll.Controllers
 {
@@ -48,28 +49,136 @@ namespace UniversityPayroll.Controllers
             _leaveTypeRepo = leaveTypeRepo;
         }
 
-        private int CalculateWorkingDays(DateTime startDate, DateTime endDate)
+        #region Optimized Helper Methods
+
+        private static int CalculateWorkingDays(DateTime startDate, DateTime endDate) =>
+            Enumerable.Range(0, (endDate - startDate).Days + 1)
+                      .Select(offset => startDate.AddDays(offset))
+                      .Count(date => date.DayOfWeek != DayOfWeek.Sunday);
+
+        private async Task PopulateViewBags(string? selectedDesignation = null, string? selectedTaxSlab = null)
         {
-            int workingDays = 0;
-            for (DateTime date = startDate; date <= endDate; date = date.AddDays(1))
-            {
-                if (date.DayOfWeek != DayOfWeek.Sunday)
-                {
-                    workingDays++;
-                }
-            }
-            return workingDays;
+            var designations = await _designationRepo.GetActiveAsync();
+            ViewBag.Designations = new SelectList(designations, "Name", "Name", selectedDesignation);
+
+            var taxSlabs = await _taxRepo.GetAllAsync();
+            ViewBag.TaxSlabs = new SelectList(taxSlabs, "Id", "FinancialYear", selectedTaxSlab);
         }
+
+        private async Task<bool> CreateUserForEmployee(Employee model, string email, string password)
+        {
+            var user = new ApplicationUser { UserName = email, Email = email };
+            var result = await _userManager.CreateAsync(user, password);
+            
+            if (result.Succeeded)
+            {
+                model.IdentityUserId = user.Id.ToString();
+                return true;
+            }
+            
+            ModelState.AddModelError("", result.Errors.First().Description);
+            return false;
+        }
+
+        private async Task<LeaveBalance> EnsureLeaveBalance(Employee emp, int year)
+        {
+            var ent = await _entitlementRepo.GetByDesignationAsync(emp.Designation);
+            var balance = await _leaveBalanceRepo.GetByEmployeeYearAsync(emp.Id, year);
+
+            if (ent?.Entitlements == null) return balance ?? new LeaveBalance();
+
+            if (balance == null)
+            {
+                balance = new LeaveBalance
+                {
+                    EmployeeId = emp.Id,
+                    Year = year,
+                    Entitlements = new Dictionary<string, int>(ent.Entitlements),
+                    Used = ent.Entitlements.ToDictionary(x => x.Key, x => 0),
+                    Balance = new Dictionary<string, int>(ent.Entitlements),
+                    LastAccrualDate = DateTime.UtcNow,
+                    UpdatedOn = DateTime.UtcNow
+                };
+                await _leaveBalanceRepo.CreateAsync(balance);
+            }
+            else
+            {
+                await SyncLeaveBalance(balance, ent.Entitlements);
+            }
+
+            return balance;
+        }
+
+        private async Task SyncLeaveBalance(LeaveBalance balance, Dictionary<string, int> entitlements)
+        {
+            bool updated = false;
+
+            foreach (var kv in entitlements.Where(kv => !balance.Entitlements.ContainsKey(kv.Key)))
+            {
+                balance.Entitlements[kv.Key] = kv.Value;
+                balance.Used[kv.Key] = 0;
+                balance.Balance[kv.Key] = kv.Value;
+                updated = true;
+            }
+
+            var toRemove = balance.Entitlements.Keys.Except(entitlements.Keys).ToList();
+            foreach (var key in toRemove)
+            {
+                balance.Entitlements.Remove(key);
+                balance.Used.Remove(key);
+                balance.Balance.Remove(key);
+                updated = true;
+            }
+
+            if (updated)
+                await _leaveBalanceRepo.UpdateAsync(balance);
+        }
+
+        private async Task<(bool success, DateTime paidEndDate)> ProcessPaidLeave(Employee employee, LeaveApplication model, decimal paidDays)
+        {
+            if (paidDays <= 0) return (false, model.StartDate);
+
+            DateTime paidEndDate = model.IsHalfDay ? model.StartDate : CalculateEndDate(model.StartDate, paidDays);
+
+            var paidLeave = new LeaveApplication
+            {
+                EmployeeId = employee.Id,
+                LeaveType = model.LeaveType,
+                StartDate = model.StartDate,
+                EndDate = paidEndDate,
+                TotalDays = paidDays,
+                IsHalfDay = model.IsHalfDay && paidDays == 0.5m,
+                Reason = model.Reason,
+                Status = "Pending",
+                AppliedOn = DateTime.UtcNow
+            };
+
+            await _leaveRepo.CreateAsync(paidLeave);
+            return (true, paidEndDate);
+        }
+
+        private DateTime CalculateEndDate(DateTime startDate, decimal totalDays)
+        {
+            int daysToAdd = 0;
+            decimal daysLeft = totalDays;
+            
+            while (daysLeft > 0)
+            {
+                if (startDate.AddDays(daysToAdd).DayOfWeek != DayOfWeek.Sunday)
+                    daysLeft--;
+                if (daysLeft > 0) daysToAdd++;
+            }
+            
+            return startDate.AddDays(daysToAdd - 1);
+        }
+
+        #endregion
 
         [Authorize(Policy = "CrudOnlyForAdmin")]
         [HttpGet]
         public async Task<IActionResult> Create()
         {
-            var designations = await _designationRepo.GetActiveAsync();
-            ViewBag.Designations = new SelectList(designations, "Name", "Name");
-
-            var taxSlabs = await _taxRepo.GetAllAsync();
-            ViewBag.TaxSlabs = new SelectList(taxSlabs, "Id", "FinancialYear");
+            await PopulateViewBags();
             return View();
         }
 
@@ -77,28 +186,16 @@ namespace UniversityPayroll.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(Employee model, string email, string password)
         {
-
-            var user = new ApplicationUser { UserName = email, Email = email };
-            var result = await _userManager.CreateAsync(user, password);
-            if (!result.Succeeded)
+            if (!await CreateUserForEmployee(model, email, password))
             {
-                ModelState.AddModelError("", result.Errors.First().Description);
-            }
-            else
-            {
-                model.IdentityUserId = user.Id.ToString();
-                await _employeeRepo.CreateAsync(model);
-                await EnsureSalaryStructureExists(model.Designation);
-                await EnsureLeaveEntitlementExists(model.Designation);
-                return RedirectToAction(nameof(Index));
+                await PopulateViewBags(model.Designation, model.TaxSlabId);
+                return View(model);
             }
 
-
-            var designations = await _designationRepo.GetActiveAsync();
-            ViewBag.Designations = new SelectList(designations, "Name", "Name", model.Designation);
-            var taxSlabs = await _taxRepo.GetAllAsync();
-            ViewBag.TaxSlabs = new SelectList(taxSlabs, "Id", "FinancialYear", model.TaxSlabId);
-            return View(model);
+            await _employeeRepo.CreateAsync(model);
+            await _salaryStructRepo.GetByDesignationAsync(model.Designation);
+            await _entitlementRepo.GetByDesignationAsync(model.Designation);
+            return RedirectToAction(nameof(Index));
         }
 
         [Authorize(Policy = "CrudOnlyForAdmin")]
@@ -108,12 +205,7 @@ namespace UniversityPayroll.Controllers
             var emp = await _employeeRepo.GetByIdAsync(id);
             if (emp == null) return NotFound();
 
-            var designations = await _designationRepo.GetActiveAsync();
-            ViewBag.Designations = new SelectList(designations, "Name", "Name", emp.Designation);
-
-            var taxSlabs = await _taxRepo.GetAllAsync();
-            ViewBag.TaxSlabs = new SelectList(taxSlabs, "Id", "FinancialYear", emp.TaxSlabId);
-
+            await PopulateViewBags(emp.Designation, emp.TaxSlabId);
             return View(emp);
         }
 
@@ -121,36 +213,21 @@ namespace UniversityPayroll.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(Employee model)
         {
-            if (ModelState.IsValid)
-            {
-                await _employeeRepo.UpdateAsync(model);
-                await EnsureSalaryStructureExists(model.Designation);
-                await EnsureLeaveEntitlementExists(model.Designation);
-                return RedirectToAction(nameof(Index));
-            }
-
-            var designations = await _designationRepo.GetActiveAsync();
-            ViewBag.Designations = new SelectList(designations, "Name", "Name", model.Designation);
-
-            var taxSlabs = await _taxRepo.GetAllAsync();
-            ViewBag.TaxSlabs = new SelectList(taxSlabs, "Id", "FinancialYear", model.TaxSlabId);
-
-            return View(model);
+            await _employeeRepo.UpdateAsync(model);
+            await _salaryStructRepo.GetByDesignationAsync(model.Designation);
+            await _entitlementRepo.GetByDesignationAsync(model.Designation);
+            return RedirectToAction(nameof(Index));
         }
 
         [Authorize(Policy = "CrudOnlyForAdmin")]
-        public async Task<IActionResult> Index()
-        {
-            var list = await _employeeRepo.GetAllAsync();
-            return View(list);
-        }
+        public async Task<IActionResult> Index() => View(await _employeeRepo.GetAllAsync());
 
         [Authorize(Policy = "CrudOnlyForAdmin")]
         [HttpPost]
         public async Task<IActionResult> Delete(string id)
         {
             var emp = await _employeeRepo.GetByIdAsync(id);
-            if (emp != null && !string.IsNullOrEmpty(emp.IdentityUserId))
+            if (emp?.IdentityUserId != null)
             {
                 var user = await _userManager.FindByIdAsync(emp.IdentityUserId);
                 if (user != null)
@@ -164,69 +241,18 @@ namespace UniversityPayroll.Controllers
         public async Task<IActionResult> Profile()
         {
             var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-                return RedirectToAction("Login", "Account");
+            if (user == null) return RedirectToAction("Login", "Account");
 
             var emp = await _employeeRepo.GetByUserIdAsync(user.Id.ToString());
-            if (emp == null)
-                return View(new EmployeeProfileViewModel());
+            if (emp == null) return View(new EmployeeProfileViewModel());
 
-            var structure = await EnsureSalaryStructureExists(emp.Designation);
-            var taxSlab = !string.IsNullOrEmpty(emp.TaxSlabId) ? await _taxRepo.GetByIdAsync(emp.TaxSlabId) : null;
             var year = DateTime.UtcNow.Year;
-
-            var ent = await EnsureLeaveEntitlementExists(emp.Designation);
-            var balance = await _leaveBalanceRepo.GetByEmployeeYearAsync(emp.Id, year);
-
-            if (ent != null && ent.Entitlements != null)
-            {
-                var entitlements = ent.Entitlements;
-                if (balance == null)
-                {
-                    var used = entitlements.ToDictionary(x => x.Key, x => 0);
-                    balance = new LeaveBalance
-                    {
-                        EmployeeId = emp.Id,
-                        Year = year,
-                        Entitlements = new Dictionary<string, int>(entitlements),
-                        Used = used,
-                        Balance = new Dictionary<string, int>(entitlements),
-                        LastAccrualDate = DateTime.UtcNow,
-                        UpdatedOn = DateTime.UtcNow
-                    };
-                    await _leaveBalanceRepo.CreateAsync(balance);
-                }
-                else
-                {
-                    bool updated = false;
-                    foreach (var kv in entitlements)
-                    {
-                        if (!balance.Entitlements.ContainsKey(kv.Key))
-                        {
-                            balance.Entitlements[kv.Key] = kv.Value;
-                            balance.Used[kv.Key] = 0;
-                            balance.Balance[kv.Key] = kv.Value;
-                            updated = true;
-                        }
-                    }
-                    var toRemove = balance.Entitlements.Keys.Except(entitlements.Keys).ToList();
-                    foreach (var key in toRemove)
-                    {
-                        balance.Entitlements.Remove(key);
-                        balance.Used.Remove(key);
-                        balance.Balance.Remove(key);
-                        updated = true;
-                    }
-                    if (updated)
-                    {
-                        await _leaveBalanceRepo.UpdateAsync(balance);
-                    }
-                }
-            }
-
+            var structure = await _salaryStructRepo.GetByDesignationAsync(emp.Designation);
+            var taxSlab = !string.IsNullOrEmpty(emp.TaxSlabId) ? await _taxRepo.GetByIdAsync(emp.TaxSlabId) : null;
+            var balance = await EnsureLeaveBalance(emp, year);
             var slips = await _salarySlipRepo.GetByEmployeeAsync(emp.Id);
             var allLeaves = await _leaveRepo.GetByEmployeeAsync(emp.Id);
-            var unpaidLeaves = allLeaves.Where(l => l.LeaveType == "Unpaid" && l.StartDate.Year == year).ToList();
+            var leaveTypes = await _leaveTypeRepo.GetAllAsync();
 
             var leaveApplications = allLeaves.Select(leave => new LeaveApplicationViewModel
             {
@@ -240,19 +266,18 @@ namespace UniversityPayroll.Controllers
                 IsHalfDay = leave.IsHalfDay,
                 Reason = leave.Reason,
                 Status = leave.Status,
-                AdminComments = leave.Comment
+                AdminComments = leave.Comment ?? string.Empty
             }).OrderByDescending(l => l.StartDate).ToList();
 
-            var leaveTypes = await _leaveTypeRepo.GetAllAsync();
-
+            var unpaidLeaves = allLeaves.Where(l => l.LeaveType == "Unpaid" && l.StartDate.Year == year).ToList();
             ViewData["UnpaidLeaves"] = unpaidLeaves;
 
             return View(new EmployeeProfileViewModel
             {
                 Employee = emp,
-                SalaryStructure = structure,
+                SalaryStructure = structure!,
                 TaxSlab = taxSlab,
-                LeaveBalance = balance,
+                LeaveBalance = balance!,
                 SalarySlips = slips,
                 LeaveApplications = leaveApplications,
                 LeaveTypes = leaveTypes
@@ -267,7 +292,7 @@ namespace UniversityPayroll.Controllers
             if (user == null) return RedirectToAction("Login", "Account");
 
             var employee = await _employeeRepo.GetByUserIdAsync(user.Id.ToString());
-            
+            if (employee == null) return RedirectToAction(nameof(Profile));
 
             model.EmployeeId = employee.Id;
             model.Status = "Pending";
@@ -282,63 +307,29 @@ namespace UniversityPayroll.Controllers
 
             if (requestedDays > availableBalance)
             {
-                decimal paidDays = availableBalance;
-                decimal unpaidDays = requestedDays - availableBalance;
+                await ProcessExceedingLeave(employee, model, availableBalance, requestedDays);
+            }
+            else
+            {
+                await _leaveRepo.CreateAsync(model);
+            }
 
-                if (paidDays > 0)
+            return RedirectToAction(nameof(Profile));
+        }
+
+        private async Task ProcessExceedingLeave(Employee employee, LeaveApplication model, decimal availableBalance, decimal requestedDays)
+        {
+            decimal unpaidDays = requestedDays - availableBalance;
+
+            if (availableBalance > 0)
+            {
+                var (success, paidEndDate) = await ProcessPaidLeave(employee, model, availableBalance);
+                
+                if (success && unpaidDays > 0)
                 {
-                    DateTime paidEndDate = model.StartDate;
-                    if (model.IsHalfDay)
-                    {
-                        paidEndDate = model.StartDate;
-                    }
-                    else
-                    {
-                        int daysToAdd = 0;
-                        decimal daysLeft = paidDays;
-                        while (daysLeft > 0)
-                        {
-                            if (paidEndDate.AddDays(daysToAdd).DayOfWeek != DayOfWeek.Sunday)
-                            {
-                                daysLeft--;
-                            }
-                            if (daysLeft > 0) daysToAdd++;
-                        }
-                        paidEndDate = model.StartDate.AddDays(daysToAdd);
-                    }
-
-                    var paidLeave = new LeaveApplication
-                    {
-                        EmployeeId = employee.Id,
-                        LeaveType = model.LeaveType,
-                        StartDate = model.StartDate,
-                        EndDate = paidEndDate,
-                        TotalDays = paidDays,
-                        IsHalfDay = model.IsHalfDay && paidDays == 0.5m,
-                        Reason = model.Reason,
-                        Status = "Pending",
-                        AppliedOn = DateTime.UtcNow
-                    };
-                    await _leaveRepo.CreateAsync(paidLeave);
-                }
-
-                if (unpaidDays > 0)
-                {
-                    DateTime unpaidStartDate = model.StartDate;
-                    if (paidDays > 0 && !model.IsHalfDay)
-                    {
-                        int daysToAdd = 1;
-                        decimal daysLeft = paidDays;
-                        while (daysLeft > 0)
-                        {
-                            if (model.StartDate.AddDays(daysToAdd - 1).DayOfWeek != DayOfWeek.Sunday)
-                            {
-                                daysLeft--;
-                            }
-                            if (daysLeft > 0) daysToAdd++;
-                        }
-                        unpaidStartDate = model.StartDate.AddDays(daysToAdd - 1);
-                    }
+                    DateTime unpaidStartDate = model.IsHalfDay && availableBalance == 0 
+                        ? model.StartDate 
+                        : paidEndDate.AddDays(1);
 
                     var unpaidLeave = new LeaveApplication
                     {
@@ -347,7 +338,7 @@ namespace UniversityPayroll.Controllers
                         StartDate = unpaidStartDate,
                         EndDate = model.EndDate,
                         TotalDays = unpaidDays,
-                        IsHalfDay = model.IsHalfDay && paidDays == 0,
+                        IsHalfDay = model.IsHalfDay && availableBalance == 0,
                         Reason = $"Exceeded balance for {model.LeaveType}. Original reason: {model.Reason}",
                         Status = "Pending",
                         AppliedOn = DateTime.UtcNow
@@ -357,10 +348,20 @@ namespace UniversityPayroll.Controllers
             }
             else
             {
-                await _leaveRepo.CreateAsync(model);
+                var unpaidLeave = new LeaveApplication
+                {
+                    EmployeeId = employee.Id,
+                    LeaveType = "Unpaid",
+                    StartDate = model.StartDate,
+                    EndDate = model.EndDate,
+                    TotalDays = requestedDays,
+                    IsHalfDay = model.IsHalfDay,
+                    Reason = $"No balance available for {model.LeaveType}. Original reason: {model.Reason}",
+                    Status = "Pending",
+                    AppliedOn = DateTime.UtcNow
+                };
+                await _leaveRepo.CreateAsync(unpaidLeave);
             }
-
-            return RedirectToAction(nameof(Profile));
         }
 
        

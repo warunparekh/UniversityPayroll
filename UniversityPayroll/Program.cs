@@ -12,24 +12,35 @@ using UniversityPayroll.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure MongoDB
 builder.Services.Configure<MongoDbSettings>(
     builder.Configuration.GetSection("MongoDbSettings"));
 
-builder.Services.AddSingleton<IMongoClient>(sp =>
-    new MongoClient(builder.Configuration["MongoDbSettings:ConnectionString"]));
-
+var connectionString = builder.Configuration["MongoDbSettings:ConnectionString"];
+builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient(connectionString));
 builder.Services.AddSingleton<MongoDbContext>();
-builder.Services.AddScoped<EmployeeRepository>();
-builder.Services.AddScoped<LeaveRepository>();
-builder.Services.AddScoped<SalaryStructureRepository>();
-builder.Services.AddScoped<TaxSlabRepository>();
-builder.Services.AddScoped<LeaveBalanceRepository>();
-builder.Services.AddScoped<SalarySlipRepository>();
-builder.Services.AddScoped<LeaveTypeRepository>();
-builder.Services.AddScoped<LeaveEntitlementRepository>();
-builder.Services.AddScoped<DesignationRepository>();
-builder.Services.AddScoped<NotificationRepository>();
 
+// Register Repositories
+var repositoryTypes = new[]
+{
+    typeof(EmployeeRepository),
+    typeof(LeaveRepository),
+    typeof(SalaryStructureRepository),
+    typeof(TaxSlabRepository),
+    typeof(LeaveBalanceRepository),
+    typeof(SalarySlipRepository),
+    typeof(LeaveTypeRepository),
+    typeof(LeaveEntitlementRepository),
+    typeof(DesignationRepository),
+    typeof(NotificationRepository)
+};
+
+foreach (var repoType in repositoryTypes)
+{
+    builder.Services.AddScoped(repoType);
+}
+
+// Configure Identity
 builder.Services
     .AddIdentityMongoDbProvider<ApplicationUser, MongoRole>(identityOptions =>
     {
@@ -41,24 +52,33 @@ builder.Services
     },
     mongoOptions =>
     {
-        mongoOptions.ConnectionString = builder.Configuration["MongoDbSettings:ConnectionString"];
+        mongoOptions.ConnectionString = connectionString;
     })
     .AddDefaultTokenProviders();
 
+// Configure MVC
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
+// Configure Authorization Policies
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("CrudOnlyForAdmin", p => p.RequireRole("Admin"));
-    options.AddPolicy("UserOrAdmin", p => p.RequireRole("User", "Admin"));
-    options.AddPolicy("AdminOnly", p => p.RequireRole("Admin"));
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("CrudOnlyForAdmin", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("UserOrAdmin", policy => policy.RequireRole("User", "Admin"));
 });
 
 var app = builder.Build();
+
+// Seed initial data
 await DataSeeder.SeedAsync(app);
 
-if (!app.Environment.IsDevelopment())
+// Configure pipeline
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+else
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
