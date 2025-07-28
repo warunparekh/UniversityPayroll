@@ -1724,23 +1724,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\gauta\\.nuget\\packages\\": {},
+    "C:\\Users\\ichik\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "e:\\asp projects\\UniversityPayroll\\UniversityPayroll.csproj",
+      "projectUniqueName": "D:\\internship_sem7\\UniversityPayroll\\UniversityPayroll\\UniversityPayroll.csproj",
       "projectName": "UniversityPayroll",
-      "projectPath": "e:\\asp projects\\UniversityPayroll\\UniversityPayroll.csproj",
-      "packagesPath": "C:\\Users\\gauta\\.nuget\\packages\\",
-      "outputPath": "e:\\asp projects\\UniversityPayroll\\obj\\",
+      "projectPath": "D:\\internship_sem7\\UniversityPayroll\\UniversityPayroll\\UniversityPayroll.csproj",
+      "packagesPath": "C:\\Users\\ichik\\.nuget\\packages\\",
+      "outputPath": "D:\\internship_sem7\\UniversityPayroll\\UniversityPayroll\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\gauta\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\ichik\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -1749,6 +1749,7 @@
       ],
       "sources": {
         "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "C:\\Program Files\\dotnet\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -1809,7 +1810,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.301/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.302/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
