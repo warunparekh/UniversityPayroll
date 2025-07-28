@@ -211,7 +211,19 @@
 </div>
 
 @section Scripts {
+    <style>
+        .date-blocked-warning {
+            color: #dc3545 !important;
+            font-weight: bold;
+        }
+        .submit-disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    </style>
     <script>
+        const blockedDates = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["BlockedDates"] as List<string> ?? new List<string>()));
+        
         document.getElementById('downloadBtn').onclick = function () {
             const year = parseInt(document.getElementById('yearSelect').value);
             const month = parseInt(document.getElementById('monthSelect').value);
@@ -225,11 +237,48 @@
             } else { msg.innerText = 'Payslip not found for selected period.'; }
         };
 
+        function isDateBlocked(dateString) {
+            return blockedDates.includes(dateString);
+        }
+
+        function isDateRangeBlocked(startDate, endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const dateStr = d.toISOString().split('T')[0];
+                if (isDateBlocked(dateStr)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             const startDateInput = document.getElementById('modalStartDate');
             const endDateInput = document.getElementById('modalEndDate');
             const totalDaysText = document.getElementById('totalDaysText');
             const halfDayCheck = document.getElementById('modalHalfDayCheck');
+            const submitBtn = document.querySelector('#leaveApplicationModal .btn-primary[type="submit"]');
+
+            function validateDatesAndCalculate() {
+                const startDate = startDateInput.value;
+                const endDate = endDateInput.value;
+                
+                if (startDate && endDate) {
+                    if (isDateRangeBlocked(startDate, endDate)) {
+                        totalDaysText.textContent = 'Selected dates are not available (already applied)';
+                        totalDaysText.className = 'form-control-plaintext fw-bold date-blocked-warning';
+                        submitBtn.disabled = true;
+                        submitBtn.classList.add('submit-disabled');
+                        return;
+                    }
+                }
+                
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('submit-disabled');
+                totalDaysText.className = 'form-control-plaintext fw-bold';
+                calculateDays();
+            }
 
             function calculateDays() {
                 const startDate = new Date(startDateInput.value);
@@ -254,13 +303,13 @@
                 endDateInput.min = startDateInput.value;
                 if (new Date(endDateInput.value) < new Date(startDateInput.value))
                     endDateInput.value = startDateInput.value;
-                calculateDays();
+                validateDatesAndCalculate();
             }
 
             startDateInput.addEventListener('change', updateEndDateMin);
-            endDateInput.addEventListener('change', calculateDays);
-            halfDayCheck.addEventListener('change', calculateDays);
-            calculateDays();
+            endDateInput.addEventListener('change', validateDatesAndCalculate);
+            halfDayCheck.addEventListener('change', validateDatesAndCalculate);
+            validateDatesAndCalculate();
         });
     </script>
 }

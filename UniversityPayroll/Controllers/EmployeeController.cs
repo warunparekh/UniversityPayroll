@@ -56,6 +56,10 @@ namespace UniversityPayroll.Controllers
                       .Select(offset => startDate.AddDays(offset))
                       .Count(date => date.DayOfWeek != DayOfWeek.Sunday);
 
+        private static IEnumerable<DateTime> GetDateRange(DateTime startDate, DateTime endDate) =>
+            Enumerable.Range(0, (endDate - startDate).Days + 1)
+                      .Select(offset => startDate.AddDays(offset));
+
         private async Task PopulateViewBags(string? selectedDesignation = null, string? selectedTaxSlab = null)
         {
             var designations = await _designationRepo.GetActiveAsync();
@@ -272,6 +276,13 @@ namespace UniversityPayroll.Controllers
             var unpaidLeaves = allLeaves.Where(l => l.LeaveType == "Unpaid" && l.StartDate.Year == year).ToList();
             ViewData["UnpaidLeaves"] = unpaidLeaves;
 
+            var blockedDates = allLeaves
+                .Where(l => l.Status != "Rejected")
+                .SelectMany(l => GetDateRange(l.StartDate, l.EndDate))
+                .Select(d => d.ToString("yyyy-MM-dd"))
+                .ToList();
+            ViewData["BlockedDates"] = blockedDates;
+
             return View(new EmployeeProfileViewModel
             {
                 Employee = emp,
@@ -293,6 +304,12 @@ namespace UniversityPayroll.Controllers
 
             var employee = await _employeeRepo.GetByUserIdAsync(user.Id.ToString());
             if (employee == null) return RedirectToAction(nameof(Profile));
+
+            bool hasOverlap = await _leaveRepo.HasOverlappingLeaveAsync(employee.Id, model.StartDate, model.EndDate);
+            if (hasOverlap)
+            {
+                return RedirectToAction(nameof(Profile));
+            }
 
             model.EmployeeId = employee.Id;
             model.Status = "Pending";
