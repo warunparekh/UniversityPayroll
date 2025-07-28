@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 using UniversityPayroll.Models;
 
 namespace UniversityPayroll.Data
@@ -14,19 +12,19 @@ namespace UniversityPayroll.Data
             _col = context.TaxSlabs;
         }
 
-        public async Task<List<TaxSlab>> GetAllAsync() =>
-            await _col.Find(_ => true).ToListAsync();
+        public Task<List<TaxSlab>> GetAllAsync() =>
+            _col.Find(_ => true).ToListAsync();
 
-        public async Task<TaxSlab?> GetByIdAsync(string id) =>
-            await _col.Find(x => x.Id == id).FirstOrDefaultAsync();
+        public Task<TaxSlab?> GetByIdAsync(string id) =>
+            _col.Find(x => x.Id == id).FirstOrDefaultAsync()!;
 
-        public async Task CreateAsync(TaxSlab item) =>
-            await _col.InsertOneAsync(item);
+        public Task CreateAsync(TaxSlab item) =>
+            _col.InsertOneAsync(item);
 
-        public async Task UpdateAsync(TaxSlab item) =>
-            await _col.ReplaceOneAsync(x => x.Id == item.Id, item);
+        public Task UpdateAsync(TaxSlab item) =>
+            _col.ReplaceOneAsync(x => x.Id == item.Id, item);
 
-        public async Task DeleteAsync(string id) =>
-            await _col.DeleteOneAsync(x => x.Id == id);
+        public Task DeleteAsync(string id) =>
+            _col.DeleteOneAsync(x => x.Id == id);
     }
 }

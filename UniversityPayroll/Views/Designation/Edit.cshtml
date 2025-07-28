@@ -1,34 +1,5 @@
 @model UniversityPayroll.Models.Designation
-@{
-    ViewData["Title"] = "Edit Designation";
-}
+@{ ViewData["Title"] = "Edit Designation"; }
 
 <h2>Edit Designation</h2>
-
-<form asp-action="Edit" method="post">
-    <input asp-for="Id" type="hidden" />
-    <input asp-for="CreatedDate" type="hidden" />
-    
-    <div class="mb-3">
-        <label asp-for="Name" class="form-label">Name</label>
-        <input asp-for="Name" class="form-control" required />
-        <span asp-validation-for="Name" class="text-danger"></span>
-    </div>
-    <div class="mb-3">
-        <label asp-for="Description" class="form-label">Description</label>
-        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
-        <span asp-validation-for="Description" class="text-danger"></span>
-    </div>
-    <div class="mb-3">
-        <div class="form-check">
-            <input asp-for="IsActive" class="form-check-input" type="checkbox" />
-            <label asp-for="IsActive" class="form-check-label">Active</label>
-        </div>
-    </div>
-    <button type="submit" class="btn btn-primary">Update</button>
-    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-</form>
-
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-}
+@{ await Html.RenderPartialAsync("_DesignationForm", Model); }

@@ -18,17 +18,17 @@
             </tr>
         </thead>
         <tbody>
-            @foreach (var designation in Model)
+            @foreach (var item in Model)
             {
                 <tr>
-                    <td>@designation.Name</td>
-                    <td>@designation.Description</td>
-                    <td><span class="badge @(designation.IsActive ? "bg-success" : "bg-secondary")">@(designation.IsActive ? "Active" : "Inactive")</span></td>
-                    <td>@designation.CreatedDate.ToString("dd/MM/yyyy")</td>
+                    <td>@item.Name</td>
+                    <td>@item.Description</td>
+                    <td><span class="badge @(item.IsActive ? "bg-success" : "bg-secondary")">@(item.IsActive ? "Active" : "Inactive")</span></td>
+                    <td>@item.CreatedDate.ToString("dd/MM/yyyy")</td>
                     <td>
-                        <a asp-action="Edit" asp-route-id="@designation.Id" class="btn btn-sm btn-outline-primary">Edit</a>
-                        <form asp-action="Delete" asp-route-id="@designation.Id" method="post" class="d-inline">
-                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure?')">Delete</button>
+                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure?')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
                         </form>
                     </td>
                 </tr>

@@ -1,8 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 using UniversityPayroll.Models;
-using System;
 
 namespace UniversityPayroll.Data
 {
@@ -10,23 +7,16 @@ namespace UniversityPayroll.Data
     {
         private readonly IMongoCollection<LeaveApplication> _col;
 
-        public LeaveRepository(MongoDbContext context)
-        {
-            _col = context.LeaveApplications;
-        }
+        public LeaveRepository(MongoDbContext context) => _col = context.LeaveApplications;
 
         public Task<List<LeaveApplication>> GetAllAsync() =>
-            _col.Find(_ => true)
-                .SortByDescending(x => x.AppliedOn)
-                .ToListAsync();
+            _col.Find(_ => true).SortByDescending(x => x.AppliedOn).ToListAsync();
 
         public Task<LeaveApplication?> GetByIdAsync(string id) =>
-            _col.Find(x => x.Id == id).FirstOrDefaultAsync();
+            _col.Find(x => x.Id == id).FirstOrDefaultAsync()!;
 
         public Task<List<LeaveApplication>> GetByEmployeeAsync(string employeeId) =>
-            _col.Find(x => x.EmployeeId == employeeId)
-                .SortByDescending(x => x.AppliedOn)
-                .ToListAsync();
+            _col.Find(x => x.EmployeeId == employeeId).SortByDescending(x => x.AppliedOn).ToListAsync();
 
         public async Task<bool> HasOverlappingLeaveAsync(string employeeId, DateTime startDate, DateTime endDate, string? excludeId = null)
         {

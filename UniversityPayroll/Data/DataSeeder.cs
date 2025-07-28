@@ -19,12 +19,8 @@ namespace UniversityPayroll.Data
                 var designationRepo = scope.ServiceProvider.GetRequiredService<DesignationRepository>();
 
                 foreach (var roleName in new[] { "Admin", "User" })
-                {
                     if (!await roleManager.RoleExistsAsync(roleName))
-                    {
                         await roleManager.CreateAsync(new MongoRole(roleName));
-                    }
-                }
 
                 const string adminEmail = "hr@uni.edu";
                 if (await userManager.FindByEmailAsync(adminEmail) == null)
@@ -36,9 +32,9 @@ namespace UniversityPayroll.Data
 
                 if (!(await leaveTypeRepo.GetAllAsync()).Any())
                 {
-                    await leaveTypeRepo.CreateAsync(new LeaveType { Name = "Sick" });
-                    await leaveTypeRepo.CreateAsync(new LeaveType { Name = "Casual" });
-                    await leaveTypeRepo.CreateAsync(new LeaveType { Name = "Unpaid" });
+                    var leaveTypes = new[] { "Sick", "Casual", "Unpaid" };
+                    foreach (var type in leaveTypes)
+                        await leaveTypeRepo.CreateAsync(new LeaveType { Name = type });
                 }
 
                 var existingDesignations = await designationRepo.GetAllAsync();
@@ -56,9 +52,7 @@ namespace UniversityPayroll.Data
                     };
 
                     foreach (var designation in defaultDesignations)
-                    {
                         await designationRepo.CreateAsync(designation);
-                    }
                 }
 
                 var activeDesignations = await designationRepo.GetActiveAsync();
@@ -69,40 +63,15 @@ namespace UniversityPayroll.Data
                 {
                     if (!existingStructureDesignations.Contains(designation.Name))
                     {
-                        var allowances = new Allowances();
-                        var incrementPercent = 3;
-
-                        if (designation.Name.Contains("Professor"))
-                        {
-                            allowances.DaPercent = 12;
-                            allowances.HraPercent = 20;
-                            incrementPercent = 5;
-                        }
-                        else if (designation.Name == "Librarian")
-                        {
-                            allowances.DaPercent = 10;
-                            allowances.HraPercent = 18;
-                            incrementPercent = 4;
-                        }
-                        else
-                        {
-                            allowances.DaPercent = 8;
-                            allowances.HraPercent = 15;
-                            incrementPercent = 3;
-                        }
+                        var (da, hra, increment) = designation.Name.Contains("Professor") ? (12, 20, 5) :
+                                                  designation.Name == "Librarian" ? (10, 18, 4) : (8, 15, 3);
 
                         await structureRepo.CreateAsync(new SalaryStructure
                         {
                             Designation = designation.Name,
-                            Allowances = allowances,
-                            Pf = new PfRules
-                            {
-                                EmployeePercent = 12,
-                                EmployerPercent = 12,
-                                EdliPercent = 0.5,
-                                PfWageCeiling = 15000
-                            },
-                            AnnualIncrementPercent = incrementPercent,
+                            Allowances = new Allowances { DaPercent = da, HraPercent = hra },
+                            Pf = new PfRules { EmployeePercent = 12, EmployerPercent = 12, EdliPercent = 0.5, PfWageCeiling = 15000 },
+                            AnnualIncrementPercent = increment,
                             CreatedOn = DateTime.UtcNow,
                             UpdatedOn = DateTime.UtcNow
                         });
@@ -149,37 +118,13 @@ namespace UniversityPayroll.Data
                 {
                     if (!existingEntitlementDesignations.Contains(designation.Name))
                     {
-                        var entitlements = new Dictionary<string, int>();
-
-                        if (designation.Name.Contains("Professor"))
-                        {
-                            entitlements = new Dictionary<string, int>
-                            {
-                                { "Sick", 15 },
-                                { "Casual", 8 }
-                            };
-                        }
-                        else if (designation.Name == "Librarian")
-                        {
-                            entitlements = new Dictionary<string, int>
-                            {
-                                { "Sick", 12 },
-                                { "Casual", 6 }
-                            };
-                        }
-                        else
-                        {
-                            entitlements = new Dictionary<string, int>
-                            {
-                                { "Sick", 10 },
-                                { "Casual", 5 }
-                            };
-                        }
+                        var (sick, casual) = designation.Name.Contains("Professor") ? (15, 8) :
+                                           designation.Name == "Librarian" ? (12, 6) : (10, 5);
 
                         await entitlementRepo.CreateAsync(new LeaveEntitlement
                         {
                             Designation = designation.Name,
-                            Entitlements = entitlements
+                            Entitlements = new Dictionary<string, int> { { "Sick", sick }, { "Casual", casual } }
                         });
                     }
                 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -202,7 +202,7 @@ namespace UniversityPayroll.Controllers
 
         #endregion
 
-        [Authorize(Policy = "CrudOnlyForAdmin")]
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet]
         public async Task<IActionResult> Create()
         {
@@ -210,7 +210,7 @@ namespace UniversityPayroll.Controllers
             return View();
         }
 
-        [Authorize(Policy = "CrudOnlyForAdmin")]
+        [Authorize(Policy = "AdminOnly")]
         [HttpPost]
         public async Task<IActionResult> Create(Employee model, string email, string password)
         {
@@ -226,7 +226,7 @@ namespace UniversityPayroll.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        [Authorize(Policy = "CrudOnlyForAdmin")]
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet]
         public async Task<IActionResult> Edit(string id)
         {
@@ -237,7 +237,7 @@ namespace UniversityPayroll.Controllers
             return View(emp);
         }
 
-        [Authorize(Policy = "CrudOnlyForAdmin")]
+        [Authorize(Policy = "AdminOnly")]
         [HttpPost]
         public async Task<IActionResult> Edit(Employee model)
         {
@@ -247,10 +247,10 @@ namespace UniversityPayroll.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        [Authorize(Policy = "CrudOnlyForAdmin")]
+        [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> Index() => View(await _employeeRepo.GetAllAsync());
 
-        [Authorize(Policy = "CrudOnlyForAdmin")]
+        [Authorize(Policy = "AdminOnly")]
         [HttpPost]
         public async Task<IActionResult> Delete(string id)
         {

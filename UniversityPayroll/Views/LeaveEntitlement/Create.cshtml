@@ -1,36 +1,5 @@
 @model UniversityPayroll.Models.LeaveEntitlement
-@{
-    ViewData["Title"] = "Add Leave Entitlement";
-    var leaveTypes = (List<LeaveType>)ViewBag.LeaveTypes;
-}
+@{ ViewData["Title"] = "Add Leave Entitlement"; }
+
 <h2>Add Leave Entitlement</h2>
-<form asp-action="Create" method="post">
-    <div class="mb-3">
-        <label asp-for="Designation" class="form-label">Designation</label>
-        <select asp-for="Designation" class="form-select" required>
-            <option value="">-- Select --</option>
-            @foreach (var d in (IEnumerable<dynamic>)ViewBag.Designations)
-            {
-                <option value="@d.Value">@d.Text</option>
-            }
-        </select>
-    </div>
-    <div class="mb-3">
-        <label>Leave Types & Counts</label>
-        <div id="leave-types">
-            @foreach (var type in leaveTypes)
-            {
-                <div class="row mb-2">
-                    <div class="col">
-                        <input type="text" class="form-control" value="@type.Name" readonly />
-                    </div>
-                    <div class="col">
-                        <input name="Entitlements[@type.Name]" value="@(Model.Entitlements != null && Model.Entitlements.ContainsKey(type.Name) ? Model.Entitlements[type.Name] : 0)" class="form-control" type="number" />
-                    </div>
-                </div>
-            }
-        </div>
-    </div>
-    <button type="submit" class="btn btn-primary">Save</button>
-    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-</form>
+@{ await Html.RenderPartialAsync("_LeaveEntitlementForm", Model); }

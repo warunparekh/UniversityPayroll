@@ -1,42 +1,7 @@
-﻿<!-- Views/TaxSlab/Create.cshtml -->
-@model UniversityPayroll.Models.TaxSlab
-@{
-    ViewData["Title"] = "New Tax Slab";
-}
+﻿@model UniversityPayroll.Models.TaxSlab
+@{ ViewData["Title"] = "New Tax Slab"; }
+
 <h2>New Tax Slab</h2>
-<form asp-action="Create" method="post">
-    <div class="mb-3">
-        <label asp-for="FinancialYear" class="form-label">Financial Year</label>
-        <input asp-for="FinancialYear" class="form-control" required />
-    </div>
-    <div class="mb-3">
-        <label asp-for="CessPercent" class="form-label">Cess %</label>
-        <input asp-for="CessPercent" class="form-control" type="number" step="0.01" required />
-    </div>
-    <fieldset class="border p-3 mb-3">
-        <legend class="float-none w-auto">Slabs (up to 4)</legend>
-        <table class="table">
-            <thead>
-                <tr><th>From</th><th>To (blank = ∞)</th><th>Rate %</th></tr>
-            </thead>
-            <tbody>
-                @for (int i = 0; i < Model.Slabs.Count; i++)
-                {
-                    <tr>
-                        <td>
-                            <input asp-for="Slabs[@i].From" class="form-control" type="number" step="0.01" />
-                        </td>
-                        <td>
-                            <input asp-for="Slabs[@i].To" class="form-control" type="number" step="0.01" />
-                        </td>
-                        <td>
-                            <input asp-for="Slabs[@i].Rate" class="form-control" type="number" step="0.01" />
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </fieldset>
-    <button type="submit" class="btn btn-primary">Save</button>
+@{ await Html.RenderPartialAsync("_TaxSlabForm", Model); }
     <a asp-action="Index" class="btn btn-secondary">Cancel</a>
 </form>

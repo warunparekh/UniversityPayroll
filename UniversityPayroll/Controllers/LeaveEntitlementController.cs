@@ -9,7 +9,7 @@ using System.Collections.Generic;
 
 namespace UniversityPayroll.Controllers
 {
-    [Authorize(Policy = "CrudOnlyForAdmin")]
+    [Authorize(Policy = "AdminOnly")]
     public class LeaveEntitlementController : Controller
     {
         private readonly LeaveEntitlementRepository _repo;

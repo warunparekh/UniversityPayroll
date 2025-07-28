@@ -8,7 +8,7 @@ using UniversityPayroll.Models;
 
 namespace UniversityPayroll.Controllers
 {
-    [Authorize(Policy = "CrudOnlyForAdmin")]
+    [Authorize(Policy = "AdminOnly")]
     public class SalaryStructureController : Controller
     {
         private readonly SalaryStructureRepository _repo;

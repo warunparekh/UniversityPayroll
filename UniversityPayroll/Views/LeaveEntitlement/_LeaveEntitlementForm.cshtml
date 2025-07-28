@@ -1,0 +1,52 @@
+@model UniversityPayroll.Models.LeaveEntitlement
+@{
+    var leaveTypes = (List<UniversityPayroll.Models.LeaveType>)ViewBag.LeaveTypes;
+}
+
+<form asp-action="@(Model?.Id != null ? "Edit" : "Create")" method="post">
+    @if (Model?.Id != null)
+    {
+        <input type="hidden" asp-for="Id" />
+    }
+    
+    <div class="mb-3">
+        <label asp-for="Designation" class="form-label">Designation</label>
+        <select asp-for="Designation" class="form-select" required>
+            <option value="">-- Select --</option>
+            @foreach (var d in (IEnumerable<dynamic>)ViewBag.Designations)
+            {
+                <option value="@d.Value" selected="@(Model?.Designation == d.Value ? "selected" : null)">@d.Text</option>
+            }
+        </select>
+        <span asp-validation-for="Designation" class="text-danger"></span>
+    </div>
+    
+    <div class="mb-3">
+        <label>Leave Types & Counts</label>
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr><th>Leave Type</th><th>Count</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var type in leaveTypes)
+                    {
+                        <tr>
+                            <td>@type.Name</td>
+                            <td>
+                                <input name="Entitlements[@type.Name]" 
+                                       value="@(Model?.Entitlements?.ContainsKey(type.Name) == true ? Model.Entitlements[type.Name] : 0)" 
+                                       class="form-control" type="number" min="0" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <button type="submit" class="btn btn-primary">@(Model?.Id != null ? "Update" : "Save")</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>
+
+@section Scripts { @{await Html.RenderPartialAsync("_ValidationScriptsPartial");} }

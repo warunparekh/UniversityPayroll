@@ -1,0 +1,57 @@
+@model UniversityPayroll.Models.TaxSlab
+
+<form asp-action="@(Model?.Id != null ? "Edit" : "Create")" method="post">
+    @if (Model?.Id != null)
+    {
+        <input type="hidden" asp-for="Id" />
+    }
+    
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label asp-for="FinancialYear" class="form-label">Financial Year</label>
+            <input asp-for="FinancialYear" class="form-control" required />
+            <span asp-validation-for="FinancialYear" class="text-danger"></span>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label asp-for="CessPercent" class="form-label">Cess %</label>
+            <input asp-for="CessPercent" class="form-control" type="number" step="0.01" required />
+            <span asp-validation-for="CessPercent" class="text-danger"></span>
+        </div>
+    </div>
+    
+    <fieldset class="border p-3 mb-3">
+        <legend class="float-none w-auto">Tax Slabs</legend>
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>From (₹)</th>
+                        <th>To (₹) <small class="text-muted">(blank = ∞)</small></th>
+                        <th>Rate %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < (Model?.Slabs?.Count ?? 6); i++)
+                    {
+                        <tr>
+                            <td>
+                                <input asp-for="Slabs[@i].From" class="form-control" type="number" step="1" min="0" />
+                            </td>
+                            <td>
+                                <input asp-for="Slabs[@i].To" class="form-control" type="number" step="1" min="0" />
+                            </td>
+                            <td>
+                                <input asp-for="Slabs[@i].Rate" class="form-control" type="number" step="0.01" min="0" max="100" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </fieldset>
+    
+    <button type="submit" class="btn btn-primary">@(Model?.Id != null ? "Update" : "Save")</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>
+
+@section Scripts { @{await Html.RenderPartialAsync("_ValidationScriptsPartial");} }

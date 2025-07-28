@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 using UniversityPayroll.Models;
 
 namespace UniversityPayroll.Data
@@ -9,27 +7,14 @@ namespace UniversityPayroll.Data
     {
         private readonly IMongoCollection<SalaryStructure> _col;
 
-        public SalaryStructureRepository(MongoDbContext context)
-        {
-            _col = context.SalaryStructures;
-        }
+        public SalaryStructureRepository(MongoDbContext context) => _col = context.SalaryStructures;
 
-        public async Task<List<SalaryStructure>> GetAllAsync() =>
-            await _col.Find(_ => true).ToListAsync();
-
-        public async Task<SalaryStructure?> GetByIdAsync(string id) =>
-            await _col.Find(x => x.Id == id).FirstOrDefaultAsync();
-
-        public async Task CreateAsync(SalaryStructure item) =>
-            await _col.InsertOneAsync(item);
-
-        public async Task UpdateAsync(SalaryStructure item) =>
-            await _col.ReplaceOneAsync(x => x.Id == item.Id, item);
-
-        public async Task DeleteAsync(string id) =>
-            await _col.DeleteOneAsync(x => x.Id == id);
-        public async Task<SalaryStructure?> GetByDesignationAsync(string designation) =>
-            await _col.Find(x => x.Designation == designation)
-                      .FirstOrDefaultAsync();
+        public Task<List<SalaryStructure>> GetAllAsync() => _col.Find(_ => true).ToListAsync();
+        public Task<SalaryStructure?> GetByIdAsync(string id) => _col.Find(x => x.Id == id).FirstOrDefaultAsync()!;
+        public Task CreateAsync(SalaryStructure item) => _col.InsertOneAsync(item);
+        public Task UpdateAsync(SalaryStructure item) => _col.ReplaceOneAsync(x => x.Id == item.Id, item);
+        public Task DeleteAsync(string id) => _col.DeleteOneAsync(x => x.Id == id);
+        public Task<SalaryStructure?> GetByDesignationAsync(string designation) => 
+            _col.Find(x => x.Designation == designation).FirstOrDefaultAsync()!;
     }
 }
