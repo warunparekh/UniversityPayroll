@@ -19,7 +19,14 @@
     </div>
     <div class="mb-3">
         <div class="form-check">
-            <input asp-for="IsActive" class="form-check-input" type="checkbox" @(Model?.Id == null ? "checked" : "") />
+            @if (Model?.Id == null)
+            {
+                <input asp-for="IsActive" class="form-check-input" type="checkbox" checked />
+            }
+            else
+            {
+                <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+            }
             <label asp-for="IsActive" class="form-check-label">Active</label>
         </div>
     </div>
