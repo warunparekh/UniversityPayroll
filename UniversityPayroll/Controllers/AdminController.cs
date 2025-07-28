@@ -112,14 +112,14 @@ public class AdminController : Controller
     private async Task<bool> ProcessLeaveDecision(string id, string comment, bool approve)
     {
         var leave = await _leaveRepo.GetByIdAsync(id);
-        if (leave == null || leave.StartDate <= DateTime.UtcNow.Date || (!approve && string.IsNullOrWhiteSpace(comment)))
+        if (leave == null || leave.StartDate < DateTime.UtcNow.Date || (!approve && string.IsNullOrWhiteSpace(comment)))
             return false;
 
         var adminUser = await _userManager.GetUserAsync(User);
         var previousStatus = leave.Status;
 
         leave.Status = approve ? "Approved" : "Rejected";
-        leave.Comment = approve && string.IsNullOrWhiteSpace(comment) ? "Approved by admin" : comment;
+        leave.Comment = approve && string.IsNullOrWhiteSpace(comment) ? "Approved by HR" : comment;
         leave.DecidedBy = adminUser?.UserName ?? "Admin";
         leave.DecidedOn = DateTime.UtcNow;
 

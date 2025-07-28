@@ -20,7 +20,6 @@ var connectionString = builder.Configuration["MongoDbSettings:ConnectionString"]
 builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient(connectionString));
 builder.Services.AddSingleton<MongoDbContext>();
 
-// Register Repositories
 var repositoryTypes = new[]
 {
     typeof(EmployeeRepository),
@@ -40,7 +39,6 @@ foreach (var repoType in repositoryTypes)
     builder.Services.AddScoped(repoType);
 }
 
-// Configure Identity
 builder.Services
     .AddIdentityMongoDbProvider<ApplicationUser, MongoRole>(identityOptions =>
     {
@@ -56,11 +54,9 @@ builder.Services
     })
     .AddDefaultTokenProviders();
 
-// Configure MVC
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
-// Configure Authorization Policies
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
@@ -73,7 +69,6 @@ var app = builder.Build();
 // Seed initial data
 await DataSeeder.SeedAsync(app);
 
-// Configure pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();

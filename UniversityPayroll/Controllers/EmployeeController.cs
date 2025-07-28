@@ -24,6 +24,7 @@ namespace UniversityPayroll.Controllers
         private readonly LeaveEntitlementRepository _entitlementRepo;
         private readonly DesignationRepository _designationRepo;
         private readonly LeaveTypeRepository _leaveTypeRepo;
+        private readonly NotificationRepository _notificationRepo;
 
         public EmployeeController(
             EmployeeRepository employeeRepo,
@@ -35,7 +36,8 @@ namespace UniversityPayroll.Controllers
             LeaveRepository leaveRepo,
             LeaveEntitlementRepository entitlementRepo,
             DesignationRepository designationRepo,
-            LeaveTypeRepository leaveTypeRepo)
+            LeaveTypeRepository leaveTypeRepo,
+            NotificationRepository notificationRepo)
         {
             _employeeRepo = employeeRepo;
             _salaryStructRepo = salaryStructRepo;
@@ -47,6 +49,7 @@ namespace UniversityPayroll.Controllers
             _entitlementRepo = entitlementRepo;
             _designationRepo = designationRepo;
             _leaveTypeRepo = leaveTypeRepo;
+            _notificationRepo = notificationRepo;
         }
 
         #region Optimized Helper Methods
@@ -82,6 +85,26 @@ namespace UniversityPayroll.Controllers
             
             ModelState.AddModelError("", result.Errors.First().Description);
             return false;
+        }
+
+        private async Task SendLeaveApplicationNotificationToAdmin(Employee employee, LeaveApplication leave)
+        {
+            var adminUsers = await _userManager.GetUsersInRoleAsync("Admin");
+            
+            foreach (var admin in adminUsers)
+            {
+                var message = $"New leave application from {employee.Name} ({employee.EmployeeCode}) " +
+                            $"for {leave.LeaveType} from {leave.StartDate:dd/MM/yyyy} to {leave.EndDate:dd/MM/yyyy} " +
+                            $"({leave.TotalDays} day{(leave.TotalDays != 1 ? "s" : "")})";
+
+                await _notificationRepo.CreateAsync(new Notification
+                {
+                    UserId = admin.Id.ToString(),
+                    Message = message,
+                    Url = "/Admin/Index",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
         }
 
         private async Task<LeaveBalance> EnsureLeaveBalance(Employee emp, int year)
@@ -158,6 +181,7 @@ namespace UniversityPayroll.Controllers
             };
 
             await _leaveRepo.CreateAsync(paidLeave);
+            await SendLeaveApplicationNotificationToAdmin(employee, paidLeave);
             return (true, paidEndDate);
         }
 
@@ -286,7 +310,7 @@ namespace UniversityPayroll.Controllers
             return View(new EmployeeProfileViewModel
             {
                 Employee = emp,
-                SalaryStructure = structure!,
+                SalaryStructure = structure ?? new SalaryStructure(),
                 TaxSlab = taxSlab,
                 LeaveBalance = balance!,
                 SalarySlips = slips,
@@ -329,6 +353,7 @@ namespace UniversityPayroll.Controllers
             else
             {
                 await _leaveRepo.CreateAsync(model);
+                await SendLeaveApplicationNotificationToAdmin(employee, model);
             }
 
             return RedirectToAction(nameof(Profile));
@@ -361,6 +386,7 @@ namespace UniversityPayroll.Controllers
                         AppliedOn = DateTime.UtcNow
                     };
                     await _leaveRepo.CreateAsync(unpaidLeave);
+                    await SendLeaveApplicationNotificationToAdmin(employee, unpaidLeave);
                 }
             }
             else
@@ -378,22 +404,21 @@ namespace UniversityPayroll.Controllers
                     AppliedOn = DateTime.UtcNow
                 };
                 await _leaveRepo.CreateAsync(unpaidLeave);
+                await SendLeaveApplicationNotificationToAdmin(employee, unpaidLeave);
             }
         }
 
        
 
-        private async Task<SalaryStructure> EnsureSalaryStructureExists(string designation)
+        private async Task<SalaryStructure?> EnsureSalaryStructureExists(string designation)
         {
             var existing = await _salaryStructRepo.GetByDesignationAsync(designation);
-
             return existing;
         }
 
-        private async Task<LeaveEntitlement> EnsureLeaveEntitlementExists(string designation)
+        private async Task<LeaveEntitlement?> EnsureLeaveEntitlementExists(string designation)
         {
             var existing = await _entitlementRepo.GetByDesignationAsync(designation);
-
             return existing;
         }
     }
