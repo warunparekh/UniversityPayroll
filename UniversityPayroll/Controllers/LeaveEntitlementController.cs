@@ -35,7 +35,7 @@ namespace UniversityPayroll.Controllers
             ViewBag.LeaveTypes = await _typeRepo.GetAllAsync();
         }
 
-        private async Task<Dictionary<string, int>> FilterValidEntitlements(Dictionary<string, int> entitlements)
+        private async Task<Dictionary<string, decimal>> FilterValidEntitlements(Dictionary<string, decimal> entitlements)
         {
             var validLeaveTypes = (await _typeRepo.GetAllAsync()).Select(t => t.Name).ToHashSet();
             return entitlements
@@ -45,7 +45,7 @@ namespace UniversityPayroll.Controllers
 
         private static LeaveEntitlement CreateNewLeaveEntitlement() => new()
         {
-            Entitlements = new Dictionary<string, int>()
+            Entitlements = new Dictionary<string, decimal>()
         };
 
         #endregion
@@ -63,7 +63,7 @@ namespace UniversityPayroll.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(LeaveEntitlement model)
         {
-            model.Entitlements = await FilterValidEntitlements(model.Entitlements);
+            model.Entitlements = await FilterValidEntitlements(model.Entitlements ?? new Dictionary<string, decimal>());
             await _repo.CreateAsync(model);
             return RedirectToAction(nameof(Index));
         }
@@ -82,7 +82,7 @@ namespace UniversityPayroll.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(LeaveEntitlement model)
         {
-            model.Entitlements = await FilterValidEntitlements(model.Entitlements);
+            model.Entitlements = await FilterValidEntitlements(model.Entitlements ?? new Dictionary<string, decimal>());
             await _repo.UpdateAsync(model);
             return RedirectToAction(nameof(Index));
         }

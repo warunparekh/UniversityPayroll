@@ -124,7 +124,7 @@ namespace UniversityPayroll.Data
                         await entitlementRepo.CreateAsync(new LeaveEntitlement
                         {
                             Designation = designation.Name,
-                            Entitlements = new Dictionary<string, int> { { "Sick", sick }, { "Casual", casual } }
+                            Entitlements = new Dictionary<string, decimal> { { "Sick", sick }, { "Casual", casual } }
                         });
                     }
                 }

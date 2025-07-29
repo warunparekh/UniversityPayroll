@@ -54,10 +54,16 @@ namespace UniversityPayroll.Controllers
 
         #region Optimized Helper Methods
 
-        private static int CalculateWorkingDays(DateTime startDate, DateTime endDate) =>
-            Enumerable.Range(0, (endDate - startDate).Days + 1)
-                      .Select(offset => startDate.AddDays(offset))
-                      .Count(date => date.DayOfWeek != DayOfWeek.Sunday);
+        private static int CalculateWorkingDays(DateTime startDate, DateTime endDate)
+        {
+            if (endDate < startDate)
+            {
+                return 0;
+            }
+            return Enumerable.Range(0, (endDate - startDate).Days + 1)
+                             .Select(offset => startDate.AddDays(offset))
+                             .Count(date => date.DayOfWeek != DayOfWeek.Sunday);
+        }
 
         private static IEnumerable<DateTime> GetDateRange(DateTime startDate, DateTime endDate) =>
             Enumerable.Range(0, (endDate - startDate).Days + 1)
@@ -120,9 +126,9 @@ namespace UniversityPayroll.Controllers
                 {
                     EmployeeId = emp.Id,
                     Year = year,
-                    Entitlements = new Dictionary<string, int>(ent.Entitlements),
-                    Used = ent.Entitlements.ToDictionary(x => x.Key, x => 0),
-                    Balance = new Dictionary<string, int>(ent.Entitlements),
+                    Entitlements = new Dictionary<string, decimal>(ent.Entitlements),
+                    Used = ent.Entitlements.ToDictionary(x => x.Key, x => 0m),
+                    Balance = new Dictionary<string, decimal>(ent.Entitlements),
                     LastAccrualDate = DateTime.UtcNow,
                     UpdatedOn = DateTime.UtcNow
                 };
@@ -136,7 +142,7 @@ namespace UniversityPayroll.Controllers
             return balance;
         }
 
-        private async Task SyncLeaveBalance(LeaveBalance balance, Dictionary<string, int> entitlements)
+        private async Task SyncLeaveBalance(LeaveBalance balance, Dictionary<string, decimal> entitlements)
         {
             bool updated = false;
 
@@ -329,9 +335,15 @@ namespace UniversityPayroll.Controllers
             var employee = await _employeeRepo.GetByUserIdAsync(user.Id.ToString());
             if (employee == null) return RedirectToAction(nameof(Profile));
 
+            if (model.IsHalfDay)
+            {
+                model.EndDate = model.StartDate;
+            }
+
             bool hasOverlap = await _leaveRepo.HasOverlappingLeaveAsync(employee.Id, model.StartDate, model.EndDate);
             if (hasOverlap)
             {
+                TempData["ErrorMessage"] = "You have already applied for leave in the selected date range.";
                 return RedirectToAction(nameof(Profile));
             }
 
@@ -339,8 +351,7 @@ namespace UniversityPayroll.Controllers
             model.Status = "Pending";
             model.AppliedOn = DateTime.UtcNow;
 
-            int workingDays = CalculateWorkingDays(model.StartDate, model.EndDate);
-            decimal requestedDays = model.IsHalfDay ? 0.5m : workingDays;
+            decimal requestedDays = model.IsHalfDay ? 0.5m : CalculateWorkingDays(model.StartDate, model.EndDate);
             model.TotalDays = requestedDays;
 
             var balance = await _leaveBalanceRepo.GetByEmployeeYearAsync(employee.Id, model.StartDate.Year);
@@ -348,13 +359,12 @@ namespace UniversityPayroll.Controllers
 
             if (requestedDays > availableBalance)
             {
-                await ProcessExceedingLeave(employee, model, availableBalance, requestedDays);
+                model.LeaveType = "Unpaid";
+                model.Reason = $"Insufficient balance for {model.LeaveType}. Original reason: {model.Reason}";
             }
-            else
-            {
-                await _leaveRepo.CreateAsync(model);
-                await SendLeaveApplicationNotificationToAdmin(employee, model);
-            }
+
+            await _leaveRepo.CreateAsync(model);
+            await SendLeaveApplicationNotificationToAdmin(employee, model);
 
             return RedirectToAction(nameof(Profile));
         }

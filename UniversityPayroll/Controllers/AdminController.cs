@@ -91,7 +91,7 @@ public class AdminController : Controller
         var balance = await _balanceRepo.GetByEmployeeYearAsync(leave.EmployeeId ?? string.Empty, leave.StartDate.Year);
         if (balance?.Balance?.ContainsKey(leave.LeaveType) != true) return;
 
-        int days = (int)Math.Ceiling(leave.TotalDays);
+        decimal days = leave.TotalDays;
 
         if (previousStatus == "Approved")
         {
@@ -112,7 +112,7 @@ public class AdminController : Controller
     private async Task<bool> ProcessLeaveDecision(string id, string comment, bool approve)
     {
         var leave = await _leaveRepo.GetByIdAsync(id);
-        if (leave == null || leave.StartDate < DateTime.UtcNow.Date || (!approve && string.IsNullOrWhiteSpace(comment)))
+        if (leave == null || leave.StartDate.Date.AddDays(1) < DateTime.UtcNow.Date || (!approve && string.IsNullOrWhiteSpace(comment)))
             return false;
 
         var adminUser = await _userManager.GetUserAsync(User);
@@ -362,10 +362,16 @@ public class AdminController : Controller
     [HttpPost]
     public async Task<IActionResult> DeleteLeave(string id)
     {
-        if (!string.IsNullOrWhiteSpace(id))
+        var leave = await _leaveRepo.GetByIdAsync(id);
+        if (leave != null)
+        {
+            if (leave.Status == "Approved")
+            {
+                await AdjustLeaveBalanceAsync(leave, "Approved", false);
+            }
             await _leaveRepo.DeleteAsync(id);
-
-        return RedirectToAction(nameof(Index));
+        }
+        return RedirectToAction("Index");
     }
 
     [HttpPost]
