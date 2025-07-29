@@ -1,0 +1,31 @@
+﻿@model List<UniversityPayroll.Models.TaxSlab>
+@{ ViewData["Title"] = "Tax Slabs"; }
+
+<h2>Tax Slabs</h2>
+<p><a asp-action="Create" class="btn btn-primary">New Tax Slab</a></p>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>FY</th>
+            <th>Cess %</th>
+            <th>Slabs</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var t in Model)
+        {
+            <tr>
+                <td>@t.FinancialYear</td>
+                <td>@t.CessPercent</td>
+                <td>@string.Join("; ", t.Slabs.Select(s => $"{s.From}-{(s.To.HasValue ? s.To.Value.ToString() : "∞")} @ {s.Rate}%"))</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@t.Id" class="btn btn-sm btn-secondary">Edit</a>
+                    <form asp-action="Delete" asp-route-id="@t.Id" method="post" style="display:inline">
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this tax slab?');">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

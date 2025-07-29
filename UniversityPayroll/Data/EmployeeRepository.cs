@@ -1,33 +1,20 @@
-﻿using MongoDB.Bson;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 using UniversityPayroll.Models;
 
 namespace UniversityPayroll.Data
 {
     public class EmployeeRepository
     {
-        private readonly IMongoCollection<Employee> _employees;
+        private readonly IMongoCollection<Employee> _col;
 
-        public EmployeeRepository(MongoDbContext context)
-        {
-            _employees = context.Employees;
-        }
+        public EmployeeRepository(MongoDbContext context) => _col = context.Employees;
 
-        public List<Employee> GetAll() => _employees.Find(emp => true).ToList();
-
-        public Employee GetById(ObjectId id) =>
-            _employees.Find(emp => emp.Id == id).FirstOrDefault();
-        public Employee FindByIdentityUserId(ObjectId identityUserId) =>
-            _employees.Find(e => e.IdentityUserId == identityUserId).FirstOrDefault();
-
-
-        public void Create(Employee employee) =>
-            _employees.InsertOne(employee);
-
-        public void Update(ObjectId id, Employee employeeIn) =>
-            _employees.ReplaceOne(emp => emp.Id == id, employeeIn);
-
-        public void Remove(ObjectId id) =>
-            _employees.DeleteOne(emp => emp.Id == id);
+        public Task<List<Employee>> GetAllAsync() => _col.Find(_ => true).ToListAsync();
+        public Task<Employee?> GetByIdAsync(string id) => _col.Find(x => x.Id == id).FirstOrDefaultAsync()!;
+        public Task<Employee?> GetByCodeAsync(string code) => _col.Find(x => x.EmployeeCode == code).FirstOrDefaultAsync()!;
+        public Task<Employee?> GetByUserIdAsync(string userId) => _col.Find(x => x.IdentityUserId == userId).FirstOrDefaultAsync()!;
+        public Task CreateAsync(Employee item) => _col.InsertOneAsync(item);
+        public Task UpdateAsync(Employee item) => _col.ReplaceOneAsync(x => x.Id == item.Id, item);
+        public Task DeleteAsync(string id) => _col.DeleteOneAsync(x => x.Id == id);
     }
 }

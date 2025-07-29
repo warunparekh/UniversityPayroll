@@ -1,0 +1,17 @@
+@model UniversityPayroll.Models.LeaveType
+
+<form asp-action="@(Model?.Id != null ? "Edit" : "Create")" method="post">
+    @if (Model?.Id != null)
+    {
+        <input type="hidden" asp-for="Id" />
+    }
+    <div class="mb-3">
+        <label asp-for="Name" class="form-label">Name</label>
+        <input asp-for="Name" class="form-control" required />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary">@(Model?.Id != null ? "Update" : "Save")</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>
+
+@section Scripts { @{await Html.RenderPartialAsync("_ValidationScriptsPartial");} }

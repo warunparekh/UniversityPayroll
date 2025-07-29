@@ -1,30 +1,42 @@
-﻿@model IEnumerable<UniversityPayroll.Models.ViewModels.EmployeeRowViewModel>
+﻿@model List<UniversityPayroll.Models.Employee>
+@{
+    ViewData["Title"] = "Employees";
+}
 
-<h2>Employees</h2>
-<p><a href="/Employee/Create">Create New</a></p>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Employees</h2>
+    <a asp-action="Create" class="btn btn-primary">Add New Employee</a>
+</div>
 
-<table border="1">
-    <tr>
-        <th>Code</th>
-        <th>Name</th>
-        <th>Department</th>
-        <th>Email</th>
-        <th>Roles</th>
-        <th>Actions</th>
-    </tr>
-    @foreach (var item in Model)
-    {
-        <tr>
-                <td>@item.Employee.EmployeeCode</td>
-                <td>@item.Employee.FirstName @item.Employee.LastName</td>
-                <td>@item.Employee.Department</td>
-                <td>@item.Email</td>
-                <td>@item.Roles</td>
-            <td>
-                    <a href="/Employee/Details/@item.Employee.Id">Details</a> |
-                    <a href="/Employee/Edit/@item.Employee.Id">Edit</a> |
-                    <a href="/Employee/Delete/@item.Employee.Id" onclick="return confirm('Are you sure you want to delete this employee?');">Delete</a>
-            </td>
-        </tr>
-    }
-</table>
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Name</th>
+                <th>Designation</th>
+                <th>Base Salary</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var employee in Model)
+            {
+                <tr>
+                    <td>@employee.EmployeeCode</td>
+                    <td>@employee.Name</td>
+                    <td>@employee.Designation</td>
+                    <td>@employee.BaseSalary.ToString("C")</td>
+                    <td><span class="badge @(employee.Status == "Active" ? "bg-success" : "bg-secondary")">@employee.Status</span></td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@employee.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <form asp-action="Delete" asp-route-id="@employee.Id" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure?')">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

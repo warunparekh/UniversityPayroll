@@ -1,0 +1,5 @@
+@model UniversityPayroll.Models.LeaveEntitlement
+@{ ViewData["Title"] = "Add Leave Entitlement"; }
+
+<h2>Add Leave Entitlement</h2>
+@{ await Html.RenderPartialAsync("_LeaveEntitlementForm", Model); }

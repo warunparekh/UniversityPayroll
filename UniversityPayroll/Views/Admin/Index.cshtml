@@ -1,0 +1,164 @@
+﻿@using UniversityPayroll.ViewModels
+@model List<LeaveApplicationViewModel>
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<div class="d-flex">
+    <aside class="bg-light sidebar p-3">
+        <h5 class="text-center py-3 border-bottom"><i class="fas fa-user-cog"></i> Admin Panel</h5>
+        <ul class="nav flex-column">
+            <li class="nav-item"><a asp-controller="Employee" asp-action="Index" class="nav-link"><i class="fas fa-users"></i> Employees</a></li>
+            <li class="nav-item"><a asp-controller="Designation" asp-action="Index" class="nav-link"><i class="fas fa-briefcase"></i> Designations</a></li>
+            <li class="nav-item"><a asp-controller="SalaryStructure" asp-action="Index" class="nav-link"><i class="fas fa-money-check-alt"></i> Salary Structures</a></li>
+            <li class="nav-item"><a asp-controller="TaxSlab" asp-action="Index" class="nav-link"><i class="fas fa-calculator"></i> Tax Slabs</a></li>
+            <li class="nav-item"><a asp-controller="LeaveType" asp-action="Index" class="nav-link"><i class="fas fa-calendar-times"></i> Leave Types</a></li>
+            <li class="nav-item"><a asp-controller="LeaveEntitlement" asp-action="Index" class="nav-link"><i class="fas fa-calendar-check"></i> Leave Entitlements</a></li>
+        </ul>
+    </aside>
+    <main class="flex-grow-1 p-4">
+        <h2 class="mb-4">Leave Management</h2>
+        <section class="card mb-4">
+            <div class="card-header"><h5><i class="fas fa-calendar-alt"></i> All Leave Applications</h5></div>
+            <div class="card-body table-responsive">
+                <table class="table table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Employee</th>
+                            <th>Leave Type</th>
+                            <th>Dates</th>
+                            <th>Days</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            @foreach (var leave in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@leave.EmployeeName</strong><br>
+                                        <small class="text-muted">@leave.EmployeeCode</small>
+                                    </td>
+                                    <td><span class="badge @(leave.LeaveType == "Unpaid" ? "bg-danger" : "bg-primary")">@leave.LeaveType</span></td>
+                                    <td>@leave.StartDate.ToString("dd/MM/yy") - @leave.EndDate.ToString("dd/MM/yy")</td>
+                                    <td>@leave.TotalDays</td>
+                                    <td><span class="d-inline-block text-truncate" style="max-width: 150px;" title="@leave.Reason">@leave.Reason</span></td>
+                                    <td>
+                                        <span class="badge @(leave.Status.ToLower() switch {
+                                            "pending" => "bg-warning text-dark",
+                                            "approved" => "bg-success",
+                                            "rejected" => "bg-danger",
+                                            _ => "bg-secondary"
+                                        })">@leave.Status</span>
+                                    </td>
+                                    <td>
+                                        @if (leave.Status == "Pending")
+                                        {
+                                            <button type="button" class="btn btn-success btn-sm me-1" onclick="approveLeave('@leave.LeaveId')" title="Approve"><i class="fas fa-check"></i></button>
+                                            <button type="button" class="btn btn-danger btn-sm" onclick="rejectLeave('@leave.LeaveId')" title="Reject"><i class="fas fa-times"></i></button>
+                                        }
+                                        else
+                                        {
+                                            <form asp-controller="Admin" asp-action="DeleteLeave" asp-route-id="@leave.LeaveId" method="post" style="display:inline">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this Leave?');" title="Delete"><i class="fas fa-trash"></i></button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="7" class="text-center text-muted">No leave applications found</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="card-header"><h5><i class="fas fa-calculator"></i> Payroll Generation</h5></div>
+            <div class="card-body">
+                <form asp-action="RunPayroll" method="post" class="row g-3">
+                    @Html.AntiForgeryToken()
+                    <div class="col-md-4">
+                        <label for="year" class="form-label">Year</label>
+                        <select name="year" id="year" class="form-select" required>
+                            @for (int i = DateTime.Now.Year; i >= DateTime.Now.Year - 5; i--) { <option value="@i" selected="@(i == DateTime.Now.Year)">@i</option> }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="month" class="form-label">Month</label>
+                        <select name="month" id="month" class="form-select" required>
+                            @for (int m = 1; m <= 12; m++) { <option value="@m" selected="@(m == DateTime.Now.Month)">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m)</option> }
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-success" onclick="return confirm('Are you sure you want to generate payroll for the selected period?')"><i class="fas fa-play"></i> Generate Payroll</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+
+<div class="modal fade" id="approveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="approveForm" asp-controller="Admin" asp-action="ApproveLeave" method="post" class="modal-content">
+            @Html.AntiForgeryToken()
+            <div class="modal-header">
+                <h5 class="modal-title">Approve Leave Application</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="approveLeaveId" name="id" />
+                <label for="approveComment" class="form-label">Comment (Optional)</label>
+                <textarea id="approveComment" name="comment" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Approve</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="rejectForm" asp-controller="Admin" asp-action="RejectLeave" method="post" class="modal-content">
+            @Html.AntiForgeryToken()
+            <div class="modal-header">
+                <h5 class="modal-title">Reject Leave Application</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="rejectLeaveId" name="id" />
+                <label for="rejectComment" class="form-label">Rejection Reason <span class="text-danger">*</span></label>
+                <textarea id="rejectComment" name="comment" class="form-control" rows="3" required></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-danger"><i class="fas fa-times"></i> Reject</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function approveLeave(leaveId) {
+            document.getElementById('approveLeaveId').value = leaveId;
+            document.getElementById('approveComment').value = '';
+            new bootstrap.Modal(document.getElementById('approveModal')).show();
+        }
+        function rejectLeave(leaveId) {
+            document.getElementById('rejectLeaveId').value = leaveId;
+            document.getElementById('rejectComment').value = '';
+            new bootstrap.Modal(document.getElementById('rejectModal')).show();
+        }
+    </script>
+}

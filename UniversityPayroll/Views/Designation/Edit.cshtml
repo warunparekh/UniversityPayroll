@@ -1,0 +1,5 @@
+@model UniversityPayroll.Models.Designation
+@{ ViewData["Title"] = "Edit Designation"; }
+
+<h2>Edit Designation</h2>
+@{ await Html.RenderPartialAsync("_DesignationForm", Model); }

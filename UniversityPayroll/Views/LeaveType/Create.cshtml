@@ -1,0 +1,5 @@
+@model UniversityPayroll.Models.LeaveType
+@{ ViewData["Title"] = "Add Leave Type"; }
+
+<h2>Add Leave Type</h2>
+@{ await Html.RenderPartialAsync("_LeaveTypeForm", Model); }

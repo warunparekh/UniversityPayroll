@@ -1,0 +1,39 @@
+﻿@model List<UniversityPayroll.Models.LeaveEntitlement>
+@{
+    ViewData["Title"] = "Leave Entitlements";
+}
+<h2>Leave Entitlements</h2>
+<p>
+    <a asp-action="Create" class="btn btn-primary">Add Leave Entitlement</a>
+</p>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Designation</th>
+            <th>Leave Types</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var ent in Model)
+        {
+            <tr>
+                <td>@ent.Designation</td>
+                <td>
+                    @foreach (var kv in ent.Entitlements)
+                    {
+                        <span>@kv.Key: @kv.Value</span>
+                
+                        <br />
+                    }
+                </td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@ent.Id" class="btn btn-sm btn-secondary">Edit</a>
+                    <form asp-action="Delete" asp-route-id="@ent.Id" method="post" style="display:inline">
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this entitlement?');">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

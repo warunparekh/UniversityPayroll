@@ -1,0 +1,315 @@
+﻿@model UniversityPayroll.ViewModels.EmployeeProfileViewModel
+@{
+    ViewData["Title"] = "My Profile";
+    var unpaidLeaves = ViewData["UnpaidLeaves"] as List<UniversityPayroll.Models.LeaveApplication> ?? new List<UniversityPayroll.Models.LeaveApplication>();
+    var years = Model.SalarySlips?.Select(s => s.Year).Distinct().OrderByDescending(y => y).ToList() ?? new List<int>();
+}
+
+<div class="d-flex">
+    <aside class="bg-light sidebar p-3">
+        <h5 class="text-center py-3 border-bottom"><i class="fas fa-user"></i> My Profile</h5>
+        <section class="mb-3">
+            <h6 class="text-muted mb-2">Leave Balance</h6>
+            @if (Model.LeaveBalance?.Entitlements != null)
+            {
+                @foreach (var kv in Model.LeaveBalance.Entitlements)
+                {
+                    var type = kv.Key;
+                    var left = Model.LeaveBalance.Balance?.GetValueOrDefault(type) ?? 0;
+                    <div class="mb-2">
+                        <small class="text-muted">@type</small>
+                        <div class="fw-bold text-primary">@left days left</div>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="text-muted small">No leave balance info</p>
+            }
+        </section>
+        <hr>
+        <section class="mb-3">
+            <h6 class="text-muted mb-2">Net Salary</h6>
+            @if (Model.SalarySlips?.Any() == true)
+            {
+                var latestSlip = Model.SalarySlips.OrderByDescending(s => s.Year).ThenByDescending(s => s.Month).First();
+                <div class="mb-2">
+                    <small class="text-muted">Latest Net Pay</small>
+                    <div class="fw-bold text-success">@latestSlip.NetPay.ToString("C")</div>
+                </div>
+                @if (latestSlip.UnpaidLeaveDeduction > 0)
+                {
+                    <div class="mb-2">
+                        <small class="text-muted">Unpaid Deduction</small>
+                        <div class="fw-bold text-danger">@latestSlip.UnpaidLeaveDeduction.ToString("C")</div>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="text-muted small">No payslip available</p>
+            }
+        </section>
+        <hr>
+        <section>
+            <h6 class="text-muted mb-2">Download Payslip</h6>
+            <select id="yearSelect" class="form-select form-select-sm mb-2">
+                <option value="">Select Year</option>
+                @foreach (var y in years) { <option value="@y">@y</option> }
+            </select>
+            <select id="monthSelect" class="form-select form-select-sm mb-2">
+                <option value="">Select Month</option>
+                @for (int m = 1; m <= 12; m++) { <option value="@m">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m)</option> }
+            </select>
+            <button type="button" class="btn btn-primary btn-sm w-100" id="downloadBtn"><i class="fas fa-download"></i> Download</button>
+            <div id="payslipMsg" class="small text-danger mt-1"></div>
+        </section>
+    </aside>
+
+    <main class="flex-grow-1 p-4">
+        @if (Model.Employee == null)
+        {
+            <div class="alert alert-danger">Profile not found.</div>
+        }
+        else
+        {
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Leave Applications</h2>
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#leaveApplicationModal"><i class="fas fa-plus"></i> Apply for Leave</button>
+            </div>
+            <section class="card mb-4">
+                <div class="card-header"><h5><i class="fas fa-calendar-alt"></i> My Leave Applications</h5></div>
+                <div class="card-body table-responsive">
+                    <table class="table table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Leave Type</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Days</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th>Comments</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.LeaveApplications?.Any() == true)
+                            {
+                                @foreach (var leave in Model.LeaveApplications)
+                                {
+                                    <tr>
+                                        <td><span class="badge @(leave.LeaveType == "Unpaid" ? "bg-danger" : "bg-primary")">@leave.LeaveType</span></td>
+                                        <td>@leave.StartDate</td>
+                                        <td>@leave.EndDate</td>
+                                        <td>@leave.TotalDays</td>
+                                        <td><span class="d-inline-block text-truncate" style="max-width: 150px;" title="@leave.Reason">@leave.Reason</span></td>
+                                        <td>
+                                            <span class="badge @(leave.Status.ToLower() switch {
+                                                "pending" => "bg-warning text-dark",
+                                                "approved" => "bg-success",
+                                                "rejected" => "bg-danger",
+                                                _ => "bg-secondary"
+                                            })">@leave.Status</span>
+                                        </td>
+                                        <td><span class="d-inline-block text-truncate" style="max-width: 150px;" title="@leave.AdminComments">@leave.AdminComments</span></td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="7" class="text-center text-muted">No leave applications found.</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <section class="card">
+                <div class="card-header"><h5><i class="fas fa-user-circle"></i> Personal Information</h5></div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr><td><strong>Employee Code:</strong></td><td>@Model.Employee.EmployeeCode</td></tr>
+                                <tr><td><strong>Name:</strong></td><td>@Model.Employee.Name</td></tr>
+                                <tr><td><strong>Designation:</strong></td><td>@Model.Employee.Designation</td></tr>
+                                <tr><td><strong>Base Salary:</strong></td><td>@Model.Employee.BaseSalary.ToString("C")</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Salary Structure</h6>
+                            @if (Model.SalaryStructure != null)
+                            {
+                                <ul class="list-unstyled">
+                                    <li><strong>DA:</strong> @Model.SalaryStructure.Allowances?.DaPercent%</li>
+                                    <li><strong>HRA:</strong> @Model.SalaryStructure.Allowances?.HraPercent%</li>
+                                    @if (Model.SalaryStructure.Allowances?.OtherAllowances != null)
+                                    {
+                                        @foreach (var o in Model.SalaryStructure.Allowances.OtherAllowances) { <li><strong>@o.Name:</strong> @o.Percent%</li> }
+                                    }
+                                </ul>
+                            }
+                            else
+                            {
+                                <span class="text-muted">No salary structure information</span>
+                            }
+                            <h6 class="mt-3">Tax Information</h6>
+                            <p>@(Model.TaxSlab != null ? $"{Model.TaxSlab.FinancialYear} ({Model.TaxSlab.CessPercent}% cess)" : "N/A")</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        }
+    </main>
+</div>
+
+<div class="modal fade" id="leaveApplicationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form asp-controller="Employee" asp-action="ApplyLeave" method="post" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Apply for Leave</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="LeaveType" class="form-label">Leave Type</label>
+                        <select name="LeaveType" id="LeaveType" class="form-select" required>
+                            <option value="">-- Select Leave Type --</option>
+                            @if (Model.LeaveTypes != null) { @foreach (var leaveType in Model.LeaveTypes) { <option value="@leaveType.Name">@leaveType.Name</option> } }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Total Days</label>
+                        <p id="totalDaysText" class="form-control-plaintext fw-bold">0</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="StartDate" class="form-label">Start Date</label>
+                        <input name="StartDate" id="modalStartDate" class="form-control" type="date" required min="@DateTime.Today:yyyy-MM-dd" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="EndDate" class="form-label">End Date</label>
+                        <input name="EndDate" id="modalEndDate" class="form-control" type="date" required min="@DateTime.Today:yyyy-MM-dd" />
+                    </div>
+                </div>
+                <div class="form-check mb-3">
+                    <input name="IsHalfDay" id="modalHalfDayCheck" class="form-check-input" type="checkbox" />
+                    <label class="form-check-label" for="modalHalfDayCheck">Half Day Leave</label>
+                </div>
+                <div>
+                    <label for="Reason" class="form-label">Reason</label>
+                    <textarea name="Reason" class="form-control" rows="3" required maxlength="500"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Submit Application</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <style>
+        .date-blocked-warning {
+            color: #dc3545 !important;
+            font-weight: bold;
+        }
+        .submit-disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    </style>
+    <script>
+        const blockedDates = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["BlockedDates"] as List<string> ?? new List<string>()));
+        
+        document.getElementById('downloadBtn').onclick = function () {
+            const year = parseInt(document.getElementById('yearSelect').value);
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const msg = document.getElementById('payslipMsg');
+            if (!year || !month) { msg.innerText = 'Select year and month.'; return; }
+            const slipList = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SalarySlips));
+            const found = slipList.find(s => s.Year === year && s.Month === month);
+            if (found?.PdfUrl) {
+                window.open('/Admin/DownloadSlip?file=' + encodeURIComponent(found.PdfUrl.split('/').pop()), '_blank');
+                msg.innerText = '';
+            } else { msg.innerText = 'Payslip not found for selected period.'; }
+        };
+
+        function isDateBlocked(dateString) {
+            return blockedDates.includes(dateString);
+        }
+
+        function isDateRangeBlocked(startDate, endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const dateStr = d.toISOString().split('T')[0];
+                if (isDateBlocked(dateStr)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const startDateInput = document.getElementById('modalStartDate');
+            const endDateInput = document.getElementById('modalEndDate');
+            const totalDaysText = document.getElementById('totalDaysText');
+            const halfDayCheck = document.getElementById('modalHalfDayCheck');
+            const submitBtn = document.querySelector('#leaveApplicationModal .btn-primary[type="submit"]');
+
+            function validateDatesAndCalculate() {
+                const startDate = startDateInput.value;
+                const endDate = endDateInput.value;
+                
+                if (startDate && endDate) {
+                    if (isDateRangeBlocked(startDate, endDate)) {
+                        totalDaysText.textContent = 'Selected dates are not available (already applied)';
+                        totalDaysText.className = 'form-control-plaintext fw-bold date-blocked-warning';
+                        submitBtn.disabled = true;
+                        submitBtn.classList.add('submit-disabled');
+                        return;
+                    }
+                }
+                
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('submit-disabled');
+                totalDaysText.className = 'form-control-plaintext fw-bold';
+                calculateDays();
+            }
+
+            function calculateDays() {
+                const startDate = new Date(startDateInput.value);
+                const endDate = new Date(endDateInput.value);
+                if (startDateInput.value && endDateInput.value && endDate >= startDate) {
+                    if (halfDayCheck.checked) {
+                        totalDaysText.textContent = '0.5';
+                        endDateInput.value = startDateInput.value;
+                        endDateInput.disabled = true;
+                    } else {
+                        endDateInput.disabled = false;
+                        let workingDays = 0;
+                        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                            if (d.getDay() !== 0) workingDays++; 
+                        }
+                        totalDaysText.textContent = workingDays;
+                    }
+                } else totalDaysText.textContent = '0';
+            }
+
+            function updateEndDateMin() {
+                endDateInput.min = startDateInput.value;
+                if (new Date(endDateInput.value) < new Date(startDateInput.value))
+                    endDateInput.value = startDateInput.value;
+                validateDatesAndCalculate();
+            }
+
+            startDateInput.addEventListener('change', updateEndDateMin);
+            endDateInput.addEventListener('change', validateDatesAndCalculate);
+            halfDayCheck.addEventListener('change', validateDatesAndCalculate);
+            validateDatesAndCalculate();
+        });
+    </script>
+}

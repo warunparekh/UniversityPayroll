@@ -1,3 +1,5 @@
 /.vs
 /UniversityPayroll/obj
-/UniversityPayroll/obj
+/UniversityPayroll/bin
+/UniversityPayroll/Properties/launchSettings.json
+/UniversityPayroll/wwwroot/salaryslips
