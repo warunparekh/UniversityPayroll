@@ -1,40 +1,70 @@
 ﻿@model List<UniversityPayroll.Models.SalaryStructure>
-@{ ViewData["Title"] = "Salary Structures"; }
+@using System.Text.Json;
+@{
+    ViewData["Title"] = "Salary Structures";
+}
 
-<h2>Salary Structures</h2>
-<p><a asp-action="Create" class="btn btn-primary">New Structure</a></p>
+<div id="react-root"></div>
 
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Designation</th>
-            <th>DA %</th>
-            <th>HRA %</th>
-            <th>Increment %</th>
-            <th>PF Emp %</th>
-            <th>PF Empr %</th>
-            <th>EDLI %</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var s in Model)
-        {
-            <tr>
-                <td>@s.Designation</td>
-                <td>@s.Allowances.DaPercent</td>
-                <td>@s.Allowances.HraPercent</td>
-                <td>@s.AnnualIncrementPercent</td>
-                <td>@s.Pf.EmployeePercent</td>
-                <td>@s.Pf.EmployerPercent</td>
-                <td>@s.Pf.EdliPercent</td>
-                <td>
-                    <a asp-action="Edit" asp-route-id="@s.Id" class="btn btn-sm btn-secondary">Edit</a>
-                    <form asp-action="Delete" asp-route-id="@s.Id" method="post" style="display:inline">
-                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this structure?');">Delete</button>
-                    </form>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+<script>
+    const salaryStructuresData = @Html.Raw(Json.Serialize(Model));
+</script>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+
+<script>
+    const e = React.createElement;
+
+    const SalaryStructureTable = ({ structures }) => {
+        const handleDelete = (id) => {
+            if (confirm('Delete this structure?')) {
+                fetch(`/SalaryStructure/Delete/${id}`, {
+                    method: 'POST'
+                }).then(() => {
+                    window.location.reload();
+                });
+            }
+        };
+
+        const tableHeaders = [
+            'Designation', 'DA %', 'HRA %', 'Increment %',
+            'PF Emp %', 'PF Empr %', 'EDLI %', 'Actions'
+        ];
+
+        return e('div', null,
+            e('h2', null, 'Salary Structures'),
+            e('p', null, 
+                e('a', { href: "/SalaryStructure/Create", className: "btn btn-primary" }, 'New Structure')
+            ),
+            e('table', { className: "table table-striped" },
+                e('thead', null,
+                    e('tr', null, 
+                        tableHeaders.map(header => e('th', { key: header }, header))
+                    )
+                ),
+                e('tbody', null,
+                    structures.map(s => 
+                        e('tr', { key: s.id },
+                            e('td', null, s.designation),
+                            e('td', null, s.allowances ? s.allowances.daPercent : 0),
+                            e('td', null, s.allowances ? s.allowances.hraPercent : 0),
+                            e('td', null, s.annualIncrementPercent),
+                            e('td', null, s.pf ? s.pf.employeePercent : 0),
+                            e('td', null, s.pf ? s.pf.employerPercent : 0),
+                            e('td', null, s.pf ? s.pf.edliPercent : 0),
+                            e('td', null,
+                                e('a', { href: `/SalaryStructure/Edit/${s.id}`, className: "btn btn-sm btn-secondary" }, 'Edit'),
+                                e('button', { onClick: () => handleDelete(s.id), className: "btn btn-sm btn-danger" }, 'Delete')
+                            )
+                        )
+                    )
+                )
+            )
+        );
+    };
+
+    const container = document.getElementById('react-root');
+    const root = ReactDOM.createRoot(container);
+    root.render(e(SalaryStructureTable, { structures: salaryStructuresData }));
+</script>
