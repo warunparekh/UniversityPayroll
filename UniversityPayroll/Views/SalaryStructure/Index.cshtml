@@ -1,19 +1,15 @@
 ﻿@model List<UniversityPayroll.Models.SalaryStructure>
-@using System.Text.Json;
 @{
     ViewData["Title"] = "Salary Structures";
 }
 
 <div id="react-root"></div>
 
-<script>
-    const salaryStructuresData = @Html.Raw(Json.Serialize(Model));
-</script>
-
 <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
 
 <script>
+    const salaryStructuresData = @Json.Serialize(Model);
     const e = React.createElement;
 
     const SalaryStructureTable = ({ structures }) => {
@@ -39,12 +35,12 @@
                     structures.map(s => 
                         e('tr', { key: s.id },
                             e('td', null, s.designation),
-                            e('td', null, s.allowances ? s.allowances.daPercent : 0),
-                            e('td', null, s.allowances ? s.allowances.hraPercent : 0),
+                            e('td', null, s.allowances.daPercent),
+                            e('td', null, s.allowances.hraPercent),
                             e('td', null, s.annualIncrementPercent),
-                            e('td', null, s.pf ? s.pf.employeePercent : 0),
-                            e('td', null, s.pf ? s.pf.employerPercent : 0),
-                            e('td', null, s.pf ? s.pf.edliPercent : 0),
+                            e('td', null, s.pf.employeePercent),
+                            e('td', null, s.pf.employerPercent),
+                            e('td', null, s.pf.edliPercent),
                             e('td', null,
                                 e('a', { href: `/SalaryStructure/Edit/${s.id}`, className: "btn btn-sm btn-secondary" }, 'Edit'),
                                 e('form', { action: `/SalaryStructure/Delete/${s.id}`, method: 'post', style: { display: 'inline' }, onSubmit: (ev) => { if (!confirm('Delete this structure?')) ev.preventDefault(); } },
@@ -58,7 +54,6 @@
         );
     };
 
-    const container = document.getElementById('react-root');
-    const root = ReactDOM.createRoot(container);
-    root.render(e(SalaryStructureTable, { structures: salaryStructuresData }));
+
+    ReactDOM.createRoot(document.getElementById('react-root')).render(e(SalaryStructureTable, { structures: salaryStructuresData }));
 </script>
