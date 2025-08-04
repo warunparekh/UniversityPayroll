@@ -43,8 +43,8 @@
                             e('td', null, s.pf.edliPercent),
                             e('td', null,
                                 e('a', { href: `/SalaryStructure/Edit/${s.id}`, className: "btn btn-sm btn-secondary" }, 'Edit'),
-                                e('form', { action: `/SalaryStructure/Delete/${s.id}`, method: 'post', style: { display: 'inline' }, onSubmit: (ev) => { if (!confirm('Delete this structure?')) ev.preventDefault(); } },
-                                    e('button', { type: 'submit', className: "btn btn-sm btn-danger", style: { marginLeft: '5px' } }, 'Delete')
+                                e('form', { action: `/SalaryStructure/Delete/${s.id}`, method: 'post', onSubmit: (ev) => { if (!confirm('Delete this structure?')) ev.preventDefault(); } },
+                                    e('button', { type: 'submit', className: "btn btn-sm btn-danger" }, 'Delete')
                                 )
                             )
                         )

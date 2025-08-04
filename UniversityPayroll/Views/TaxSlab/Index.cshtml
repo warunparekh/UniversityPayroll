@@ -33,8 +33,8 @@
                             e('td', null, t.slabs.map(s => `${s.from}-${s.to ? s.to : '∞'} @@ ${s.rate}%`).join('; ')),
                             e('td', null,
                                 e('a', { href: `/TaxSlab/Edit/${t.id}`, className: "btn btn-sm btn-secondary" }, 'Edit'),
-                                e('form', { action: `/TaxSlab/Delete/${t.id}`, method: 'post', style: { display: 'inline' }, onSubmit: (ev) => { if (!confirm('Delete this tax slab?')) ev.preventDefault(); } },
-                                    e('button', { type: 'submit', className: "btn btn-sm btn-danger", style: { marginLeft: '5px' } }, 'Delete')
+                                e('form', { action: `/TaxSlab/Delete/${t.id}`, method: 'post', onSubmit: (ev) => { if (!confirm('Delete this tax slab?')) ev.preventDefault(); } },
+                                    e('button', { type: 'submit', className: "btn btn-sm btn-danger" }, 'Delete')
                                 )
                             )
                         )
