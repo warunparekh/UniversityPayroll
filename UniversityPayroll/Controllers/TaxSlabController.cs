@@ -77,7 +77,6 @@ namespace UniversityPayroll.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(string id)
         {
             await _repo.DeleteAsync(id);

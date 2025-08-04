@@ -1,31 +1,48 @@
 ﻿@model List<UniversityPayroll.Models.TaxSlab>
 @{ ViewData["Title"] = "Tax Slabs"; }
 
-<h2>Tax Slabs</h2>
-<p><a asp-action="Create" class="btn btn-primary">New Tax Slab</a></p>
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>FY</th>
-            <th>Cess %</th>
-            <th>Slabs</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var t in Model)
-        {
-            <tr>
-                <td>@t.FinancialYear</td>
-                <td>@t.CessPercent</td>
-                <td>@string.Join("; ", t.Slabs.Select(s => $"{s.From}-{(s.To.HasValue ? s.To.Value.ToString() : "∞")} @ {s.Rate}%"))</td>
-                <td>
-                    <a asp-action="Edit" asp-route-id="@t.Id" class="btn btn-sm btn-secondary">Edit</a>
-                    <form asp-action="Delete" asp-route-id="@t.Id" method="post" style="display:inline">
-                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this tax slab?');">Delete</button>
-                    </form>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+<div id="react-root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+
+<script>
+    const taxSlabsData = @Json.Serialize(Model);
+    const e = React.createElement;
+
+    const TaxSlabTable = ({ taxSlabs }) => {
+        return e('div', null,
+            e('h2', null, 'Tax Slabs'),
+            e('p', null, 
+                e('a', { href: "/TaxSlab/Create", className: "btn btn-primary" }, 'New Tax Slab')
+            ),
+            e('table', { className: "table table-striped" },
+                e('thead', null,
+                    e('tr', null, 
+                        e('th', null, 'FY'),
+                        e('th', null, 'Cess %'),
+                        e('th', null, 'Slabs'),
+                        e('th', null, 'Actions')
+                    )
+                ),
+                e('tbody', null,
+                    taxSlabs.map(t => 
+                        e('tr', { key: t.id },
+                            e('td', null, t.financialYear),
+                            e('td', null, t.cessPercent),
+                            e('td', null, t.slabs.map(s => `${s.from}-${s.to ? s.to : '∞'} @@ ${s.rate}%`).join('; ')),
+                            e('td', null,
+                                e('a', { href: `/TaxSlab/Edit/${t.id}`, className: "btn btn-sm btn-secondary" }, 'Edit'),
+                                e('form', { action: `/TaxSlab/Delete/${t.id}`, method: 'post', style: { display: 'inline' }, onSubmit: (ev) => { if (!confirm('Delete this tax slab?')) ev.preventDefault(); } },
+                                    e('button', { type: 'submit', className: "btn btn-sm btn-danger", style: { marginLeft: '5px' } }, 'Delete')
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        );
+    };
+
+    ReactDOM.createRoot(document.getElementById('react-root')).render(e(TaxSlabTable, { taxSlabs: taxSlabsData }));
+</script>
