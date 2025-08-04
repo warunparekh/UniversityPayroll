@@ -17,21 +17,6 @@
     const e = React.createElement;
 
     const SalaryStructureTable = ({ structures }) => {
-        const handleDelete = (id) => {
-            if (confirm('Delete this structure?')) {
-                fetch(`/SalaryStructure/Delete/${id}`, {
-                    method: 'POST'
-                }).then(() => {
-                    window.location.reload();
-                });
-            }
-        };
-
-        const tableHeaders = [
-            'Designation', 'DA %', 'HRA %', 'Increment %',
-            'PF Emp %', 'PF Empr %', 'EDLI %', 'Actions'
-        ];
-
         return e('div', null,
             e('h2', null, 'Salary Structures'),
             e('p', null, 
@@ -40,7 +25,14 @@
             e('table', { className: "table table-striped" },
                 e('thead', null,
                     e('tr', null, 
-                        tableHeaders.map(header => e('th', { key: header }, header))
+                        e('th', null, 'Designation'),
+                        e('th', null, 'DA %'),
+                        e('th', null, 'HRA %'),
+                        e('th', null, 'Increment %'),
+                        e('th', null, 'PF Emp %'),
+                        e('th', null, 'PF Empr %'),
+                        e('th', null, 'EDLI %'),
+                        e('th', null, 'Actions')
                     )
                 ),
                 e('tbody', null,
@@ -55,7 +47,9 @@
                             e('td', null, s.pf ? s.pf.edliPercent : 0),
                             e('td', null,
                                 e('a', { href: `/SalaryStructure/Edit/${s.id}`, className: "btn btn-sm btn-secondary" }, 'Edit'),
-                                e('button', { onClick: () => handleDelete(s.id), className: "btn btn-sm btn-danger" }, 'Delete')
+                                e('form', { action: `/SalaryStructure/Delete/${s.id}`, method: 'post', style: { display: 'inline' }, onSubmit: (ev) => { if (!confirm('Delete this structure?')) ev.preventDefault(); } },
+                                    e('button', { type: 'submit', className: "btn btn-sm btn-danger", style: { marginLeft: '5px' } }, 'Delete')
+                                )
                             )
                         )
                     )
