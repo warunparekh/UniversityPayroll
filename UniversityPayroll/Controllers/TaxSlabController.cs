@@ -82,5 +82,44 @@ namespace UniversityPayroll.Controllers
             await _repo.DeleteAsync(id);
             return RedirectToAction(nameof(Index));
         }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateAjax([FromBody] TaxSlab model)
+        {
+            var now = DateTime.UtcNow;
+            model.CreatedOn = now;
+            model.UpdatedOn = now;
+            model.Slabs = FilterValidSlabs(model.Slabs);
+            
+            await _repo.CreateAsync(model);
+            return Json(new { success = true });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EditAjax([FromBody] TaxSlab model)
+        {
+            model.UpdatedOn = DateTime.UtcNow;
+            model.Slabs = FilterValidSlabs(model.Slabs);
+            
+            await _repo.UpdateAsync(model);
+            return Json(new { success = true });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteAjax([FromBody] string id)
+        {
+            await _repo.DeleteAsync(id);
+            return Json(new { success = true });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetById(string id)
+        {
+            var item = await _repo.GetByIdAsync(id);
+            if (item == null) return NotFound();
+            
+            EnsureMinimumSlabs(item);
+            return Json(item);
+        }
     }
 }

@@ -369,4 +369,3 @@ D:\internship_sem7\UniversityPayroll\UniversityPayroll\bin\Debug\net8.0\Universi
 D:\internship_sem7\UniversityPayroll\UniversityPayroll\bin\Debug\net8.0\UniversityPayroll.pdb
 D:\internship_sem7\UniversityPayroll\UniversityPayroll\obj\Debug\net8.0\UniversityPayroll.genruntimeconfig.cache
 D:\internship_sem7\UniversityPayroll\UniversityPayroll\obj\Debug\net8.0\ref\UniversityPayroll.dll
-D:\internship_sem7\UniversityPayroll\UniversityPayroll\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
