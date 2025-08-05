@@ -17,14 +17,8 @@ namespace UniversityPayroll.Controllers
         {
             _repo = repo;
         }
-
-        // Helper methods removed – React UI handles form rendering client-side
-
         public async Task<IActionResult> Index() => View(await _repo.GetAllAsync());
 
-        // Traditional MVC actions (Create/Edit/Delete) removed; React UI uses AJAX endpoints below
-        
-        // AJAX endpoints for React-based CRUD
         [HttpPost]
         public async Task<IActionResult> CreateAjax([FromBody] SalaryStructure model)
         {
