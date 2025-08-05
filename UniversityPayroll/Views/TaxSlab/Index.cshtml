@@ -7,6 +7,8 @@
     const taxSlabsData = @Json.Serialize(Model);
     const e = React.createElement;
 
+    const emptySlabs = () => Array(6).fill().map(() => ({ from: 0, to: null, rate: 0 }));
+
     const TaxSlabApp = () => {
         const [taxSlabs, setTaxSlabs] = React.useState(taxSlabsData);
         const [showForm, setShowForm] = React.useState(false);
@@ -14,15 +16,11 @@
         const [formData, setFormData] = React.useState({
             financialYear: '',
             cessPercent: 0,
-            slabs: Array(6).fill().map(() => ({ from: 0, to: null, rate: 0 }))
+            slabs: emptySlabs()
         });
 
         const resetForm = () => {
-            setFormData({
-                financialYear: '',
-                cessPercent: 0,
-                slabs: Array(6).fill().map(() => ({ from: 0, to: null, rate: 0 }))
-            });
+            setFormData({ financialYear: '', cessPercent: 0, slabs: emptySlabs() });
             setEditingId(null);
         };
 
@@ -62,7 +60,7 @@
             setFormData({
                 financialYear: data.financialYear,
                 cessPercent: data.cessPercent,
-                slabs: [...data.slabs, ...Array(6 - data.slabs.length).fill().map(() => ({ from: 0, to: null, rate: 0 }))]
+                slabs: data.slabs.concat(emptySlabs().slice(data.slabs.length))
             });
             setEditingId(id);
             setShowForm(true);
@@ -78,72 +76,70 @@
             setTaxSlabs(taxSlabs.filter(t => t.id !== id));
         };
 
-        if (showForm) {
-            return e('div', { className: 'container mt-3' },
-                e('h2', null, editingId ? 'Edit Tax Slab' : 'New Tax Slab'),
-                e('form', { onSubmit: handleSubmit },
-                    e('input', {
-                        type: 'text',
-                        className: 'form-control mb-2',
-                        placeholder: 'Financial Year',
-                        value: formData.financialYear,
-                        onChange: (e) => updateField('financialYear', e.target.value),
-                        required: true
-                    }),
-                    e('input', {
-                        type: 'number',
-                        className: 'form-control mb-3',
-                        placeholder: 'Cess %',
-                        value: formData.cessPercent,
-                        onChange: (e) => updateField('cessPercent', Number(e.target.value) || 0),
-                        required: true
-                    }),
-                    e('table', { className: 'table table-bordered' },
-                        e('thead', null,
-                            e('tr', null,
-                                e('th', null, 'From'),
-                                e('th', null, 'To'),
-                                e('th', null, 'Rate')
-                            )
-                        ),
-                        e('tbody', null,
-                            formData.slabs.map((slab, i) =>
-                                e('tr', { key: i },
-                                    e('td', null,
-                                        e('input', {
-                                            type: 'number',
-                                            className: 'form-control',
-                                            value: slab.from || '',
-                                            onChange: (e) => updateSlab(i, 'from', e.target.value)
-                                        })
-                                    ),
-                                    e('td', null,
-                                        e('input', {
-                                            type: 'number',
-                                            className: 'form-control',
-                                            value: slab.to || '',
-                                            onChange: (e) => updateSlab(i, 'to', e.target.value)
-                                        })
-                                    ),
-                                    e('td', null,
-                                        e('input', {
-                                            type: 'number',
-                                            className: 'form-control',
-                                            value: slab.rate || '',
-                                            onChange: (e) => updateSlab(i, 'rate', e.target.value)
-                                        })
-                                    )
+        const renderForm = () => e('div', { className: 'container mt-3' },
+            e('h2', null, editingId ? 'Edit Tax Slab' : 'New Tax Slab'),
+            e('form', { onSubmit: handleSubmit },
+                e('input', {
+                    type: 'text',
+                    className: 'form-control mb-2',
+                    placeholder: 'Financial Year',
+                    value: formData.financialYear,
+                    onChange: (e) => updateField('financialYear', e.target.value),
+                    required: true
+                }),
+                e('input', {
+                    type: 'number',
+                    className: 'form-control mb-3',
+                    placeholder: 'Cess %',
+                    value: formData.cessPercent,
+                    onChange: (e) => updateField('cessPercent', Number(e.target.value) || 0),
+                    required: true
+                }),
+                e('table', { className: 'table table-bordered' },
+                    e('thead', null,
+                        e('tr', null,
+                            e('th', null, 'From'),
+                            e('th', null, 'To'),
+                            e('th', null, 'Rate')
+                        )
+                    ),
+                    e('tbody', null,
+                        formData.slabs.map((slab, i) =>
+                            e('tr', { key: i },
+                                e('td', null,
+                                    e('input', {
+                                        type: 'number',
+                                        className: 'form-control',
+                                        value: slab.from || '',
+                                        onChange: (e) => updateSlab(i, 'from', e.target.value)
+                                    })
+                                ),
+                                e('td', null,
+                                    e('input', {
+                                        type: 'number',
+                                        className: 'form-control',
+                                        value: slab.to || '',
+                                        onChange: (e) => updateSlab(i, 'to', e.target.value)
+                                    })
+                                ),
+                                e('td', null,
+                                    e('input', {
+                                        type: 'number',
+                                        className: 'form-control',
+                                        value: slab.rate || '',
+                                        onChange: (e) => updateSlab(i, 'rate', e.target.value)
+                                    })
                                 )
                             )
                         )
-                    ),
-                    e('button', { type: 'submit', className: 'btn btn-primary me-2' }, editingId ? 'Update' : 'Save'),
-                    e('button', { type: 'button', className: 'btn btn-secondary', onClick: () => setShowForm(false) }, 'Cancel')
-                )
-            );
-        }
+                    )
+                ),
+                e('button', { type: 'submit', className: 'btn btn-primary me-2' }, editingId ? 'Update' : 'Save'),
+                e('button', { type: 'button', className: 'btn btn-secondary', onClick: () => setShowForm(false) }, 'Cancel')
+            )
+        );
 
-        return e('div', { className: 'container mt-3' },
+        const renderTable = () => e('div', { className: 'container mt-3' },
             e('h2', null, 'Tax Slabs'),
             e('button', { className: 'btn btn-primary mb-3', onClick: showNewForm }, 'New Tax Slab'),
             e('table', { className: 'table table-striped' },
@@ -176,6 +172,7 @@
                 )
             )
         );
+        return showForm ? renderForm() : renderTable();
     };
 
     ReactDOM.createRoot(document.getElementById('react-root')).render(e(TaxSlabApp));
