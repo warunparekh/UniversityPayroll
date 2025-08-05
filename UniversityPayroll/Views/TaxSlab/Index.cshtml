@@ -17,29 +17,125 @@
             slabs: Array(6).fill().map(() => ({ from: 0, to: null, rate: 0 }))
         });
 
+        const resetForm = () => {
+            setFormData({
+                financialYear: '',
+                cessPercent: 0,
+                slabs: Array(6).fill().map(() => ({ from: 0, to: null, rate: 0 }))
+            });
+            setEditingId(null);
+        };
+
+        const handleSubmit = async (event) => {
+            event.preventDefault();
+            const url = editingId ? '/TaxSlab/EditAjax' : '/TaxSlab/CreateAjax';
+            await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...formData,
+                    slabs: formData.slabs.filter(s => s.rate > 0),
+                    id: editingId
+                })
+            });
+            window.location.reload();
+        };
+
+        const updateField = (field, value) => {
+            setFormData({ ...formData, [field]: value });
+        };
+
+        const updateSlab = (index, field, value) => {
+            const newSlabs = [...formData.slabs];
+            newSlabs[index] = { ...newSlabs[index], [field]: value === '' ? null : Number(value) || 0 };
+            setFormData({ ...formData, slabs: newSlabs });
+        };
+
+        const showNewForm = () => {
+            resetForm();
+            setShowForm(true);
+        };
+
+        const showEditForm = async (id) => {
+            const response = await fetch(`/TaxSlab/GetById?id=${id}`);
+            const data = await response.json();
+            setFormData({
+                financialYear: data.financialYear,
+                cessPercent: data.cessPercent,
+                slabs: [...data.slabs, ...Array(6 - data.slabs.length).fill().map(() => ({ from: 0, to: null, rate: 0 }))]
+            });
+            setEditingId(id);
+            setShowForm(true);
+        };
+
+        const deleteTaxSlab = async (id) => {
+            if (!confirm('Delete?')) return;
+            await fetch('/TaxSlab/DeleteAjax', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(id)
+            });
+            setTaxSlabs(taxSlabs.filter(t => t.id !== id));
+        };
+
         if (showForm) {
             return e('div', { className: 'container mt-3' },
                 e('h2', null, editingId ? 'Edit Tax Slab' : 'New Tax Slab'),
-                e('form', { 
-                    onSubmit: async (event) => {
-                        event.preventDefault();
-                        await fetch(editingId ? '/TaxSlab/EditAjax' : '/TaxSlab/CreateAjax', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ ...formData, slabs: formData.slabs.filter(s => s.rate > 0), id: editingId })
-                        });
-                        window.location.reload();
-                    }
-                },
-                    e('input', { type: 'text', className: 'form-control mb-2', placeholder: 'Financial Year', value: formData.financialYear, onChange: (e) => setFormData({ ...formData, financialYear: e.target.value }), required: true }),
-                    e('input', { type: 'number', className: 'form-control mb-3', placeholder: 'Cess %', value: formData.cessPercent, onChange: (e) => setFormData({ ...formData, cessPercent: Number(e.target.value) || 0 }), required: true }),
-                    e('table', { className: 'table table-bordered mb-3' },
-                        e('thead', null, e('tr', null, e('th', null, 'From'), e('th', null, 'To'), e('th', null, 'Rate'))),
-                        e('tbody', null, formData.slabs.map((slab, i) => e('tr', { key: i },
-                            e('td', null, e('input', { type: 'number', className: 'form-control', value: slab.from || '', onChange: (e) => { const slabs = [...formData.slabs]; slabs[i] = { ...slabs[i], from: Number(e.target.value) || 0 }; setFormData({ ...formData, slabs }); } })),
-                            e('td', null, e('input', { type: 'number', className: 'form-control', value: slab.to || '', onChange: (e) => { const slabs = [...formData.slabs]; slabs[i] = { ...slabs[i], to: e.target.value === '' ? null : Number(e.target.value) }; setFormData({ ...formData, slabs }); } })),
-                            e('td', null, e('input', { type: 'number', className: 'form-control', value: slab.rate || '', onChange: (e) => { const slabs = [...formData.slabs]; slabs[i] = { ...slabs[i], rate: Number(e.target.value) || 0 }; setFormData({ ...formData, slabs }); } }))
-                        )))
+                e('form', { onSubmit: handleSubmit },
+                    e('input', {
+                        type: 'text',
+                        className: 'form-control mb-2',
+                        placeholder: 'Financial Year',
+                        value: formData.financialYear,
+                        onChange: (e) => updateField('financialYear', e.target.value),
+                        required: true
+                    }),
+                    e('input', {
+                        type: 'number',
+                        className: 'form-control mb-3',
+                        placeholder: 'Cess %',
+                        value: formData.cessPercent,
+                        onChange: (e) => updateField('cessPercent', Number(e.target.value) || 0),
+                        required: true
+                    }),
+                    e('table', { className: 'table table-bordered' },
+                        e('thead', null,
+                            e('tr', null,
+                                e('th', null, 'From'),
+                                e('th', null, 'To'),
+                                e('th', null, 'Rate')
+                            )
+                        ),
+                        e('tbody', null,
+                            formData.slabs.map((slab, i) =>
+                                e('tr', { key: i },
+                                    e('td', null,
+                                        e('input', {
+                                            type: 'number',
+                                            className: 'form-control',
+                                            value: slab.from || '',
+                                            onChange: (e) => updateSlab(i, 'from', e.target.value)
+                                        })
+                                    ),
+                                    e('td', null,
+                                        e('input', {
+                                            type: 'number',
+                                            className: 'form-control',
+                                            value: slab.to || '',
+                                            onChange: (e) => updateSlab(i, 'to', e.target.value)
+                                        })
+                                    ),
+                                    e('td', null,
+                                        e('input', {
+                                            type: 'number',
+                                            className: 'form-control',
+                                            value: slab.rate || '',
+                                            onChange: (e) => updateSlab(i, 'rate', e.target.value)
+                                        })
+                                    )
+                                )
+                            )
+                        )
                     ),
                     e('button', { type: 'submit', className: 'btn btn-primary me-2' }, editingId ? 'Update' : 'Save'),
                     e('button', { type: 'button', className: 'btn btn-secondary', onClick: () => setShowForm(false) }, 'Cancel')
@@ -49,18 +145,35 @@
 
         return e('div', { className: 'container mt-3' },
             e('h2', null, 'Tax Slabs'),
-            e('button', { className: 'btn btn-primary mb-3', onClick: () => { setFormData({ financialYear: '', cessPercent: 0, slabs: Array(6).fill().map(() => ({ from: 0, to: null, rate: 0 })) }); setEditingId(null); setShowForm(true); } }, 'New Tax Slab'),
+            e('button', { className: 'btn btn-primary mb-3', onClick: showNewForm }, 'New Tax Slab'),
             e('table', { className: 'table table-striped' },
-                e('thead', null, e('tr', null, e('th', null, 'FY'), e('th', null, 'Cess'), e('th', null, 'Slabs'), e('th', null, 'Actions'))),
-                e('tbody', null, taxSlabs.map(t => e('tr', { key: t.id },
-                    e('td', null, t.financialYear),
-                    e('td', null, t.cessPercent),
-                    e('td', null, t.slabs.map(s => `${s.from}-${s.to || '∞'} @@ ${s.rate}%`).join('; ')),
-                    e('td', null,
-                        e('button', { className: 'btn btn-sm btn-secondary me-1', onClick: async () => { const data = await (await fetch(`/TaxSlab/GetById?id=${t.id}`)).json(); setFormData({ financialYear: data.financialYear, cessPercent: data.cessPercent, slabs: [...data.slabs, ...Array(6 - data.slabs.length).fill().map(() => ({ from: 0, to: null, rate: 0 }))] }); setEditingId(t.id); setShowForm(true); } }, 'Edit'),
-                        e('button', { className: 'btn btn-sm btn-danger', onClick: async () => { if (confirm('Delete?')) { await fetch('/TaxSlab/DeleteAjax', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(t.id) }); setTaxSlabs(taxSlabs.filter(tax => tax.id !== t.id)); } } }, 'Delete')
+                e('thead', null,
+                    e('tr', null,
+                        e('th', null, 'FY'),
+                        e('th', null, 'Cess'),
+                        e('th', null, 'Slabs'),
+                        e('th', null, 'Actions')
                     )
-                )))
+                ),
+                e('tbody', null,
+                    taxSlabs.map(t =>
+                        e('tr', { key: t.id },
+                            e('td', null, t.financialYear),
+                            e('td', null, t.cessPercent),
+                            e('td', null, t.slabs.map(s => `${s.from}-${s.to || '∞'} @@ ${s.rate}%`).join('; ')),
+                            e('td', null,
+                                e('button', {
+                                    className: 'btn btn-sm btn-secondary me-1',
+                                    onClick: () => showEditForm(t.id)
+                                }, 'Edit'),
+                                e('button', {
+                                    className: 'btn btn-sm btn-danger',
+                                    onClick: () => deleteTaxSlab(t.id)
+                                }, 'Delete')
+                            )
+                        )
+                    )
+                )
             )
         );
     };
