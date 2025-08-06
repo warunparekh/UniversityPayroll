@@ -32,13 +32,26 @@ function SalaryStructureApp() {
     }
 
     function updateField(field, value) {
-        formData[field] = value;
-        setFormData(formData);
+        var newData = {};
+        for (var key in formData) {
+            newData[key] = formData[key];
+        }
+        newData[field] = value;
+        setFormData(newData);
     }
 
     function updateNested(group, field, value) {
-        formData[group][field] = Number(value) || 0;
-        setFormData(formData);
+        var newData = {};
+        for (var key in formData) {
+            newData[key] = formData[key];
+        }
+        var newGroup = {};
+        for (var k in formData[group]) {
+            newGroup[k] = formData[group][k];
+        }
+        newGroup[field] = Number(value) || 0;
+        newData[group] = newGroup;
+        setFormData(newData);
     }
 
     function showEditForm(id) {
@@ -60,13 +73,20 @@ function SalaryStructureApp() {
             <div className="container mt-3">
                 <h2>{editingId ? 'Edit Structure' : 'New Structure'}</h2>
                 <form onSubmit={handleSubmit}>
-                    <input type="text" className="form-control mb-2" placeholder="Designation" value={formData.designation} onChange={function(e) { updateField('designation', e.target.value); }} required />
-                    <input type="number" className="form-control mb-2" placeholder="DA %" value={formData.allowances.daPercent} onChange={function(e) { updateNested('allowances', 'daPercent', e.target.value); }} required />
-                    <input type="number" className="form-control mb-2" placeholder="HRA %" value={formData.allowances.hraPercent} onChange={function(e) { updateNested('allowances', 'hraPercent', e.target.value); }} required />
-                    <input type="number" className="form-control mb-2" placeholder="Increment %" value={formData.annualIncrementPercent} onChange={function(e) { updateField('annualIncrementPercent', Number(e.target.value)); }} required />
-                    <input type="number" className="form-control mb-2" placeholder="PF Emp %" value={formData.pf.employeePercent} onChange={function(e) { updateNested('pf', 'employeePercent', e.target.value); }} required />
-                    <input type="number" className="form-control mb-2" placeholder="PF Empr %" value={formData.pf.employerPercent} onChange={function(e) { updateNested('pf', 'employerPercent', e.target.value); }} required />
-                    <input type="number" className="form-control mb-3" placeholder="EDLI %" value={formData.pf.edliPercent} onChange={function(e) { updateNested('pf', 'edliPercent', e.target.value); }} required />
+                    <div>Designation</div>
+                    <input type="text" className="form-control mb-2" value={formData.designation} onChange={function(e) { updateField('designation', e.target.value); }} required />
+                    <div>DA %</div>
+                    <input type="number" className="form-control mb-2" value={formData.allowances.daPercent || ""} onChange={function(e) { updateNested('allowances', 'daPercent', e.target.value); }} required />
+                    <div>HRA %</div>
+                    <input type="number" className="form-control mb-2" value={formData.allowances.hraPercent || ""} onChange={function(e) { updateNested('allowances', 'hraPercent', e.target.value); }} required />
+                    <div>Increment %</div>
+                    <input type="number" className="form-control mb-2" value={formData.annualIncrementPercent || ""} onChange={function(e) { updateField('annualIncrementPercent', Number(e.target.value)); }} required />
+                    <div>PF Emp %</div>
+                    <input type="number" className="form-control mb-2" value={formData.pf.employeePercent || ""} onChange={function(e) { updateNested('pf', 'employeePercent', e.target.value); }} required />
+                    <div>PF Empr %</div>
+                    <input type="number" className="form-control mb-2" value={formData.pf.employerPercent || ""} onChange={function(e) { updateNested('pf', 'employerPercent', e.target.value); }} required />
+                    <div>EDLI %</div>
+                    <input type="number" className="form-control mb-3" value={formData.pf.edliPercent || ""} onChange={function(e) { updateNested('pf', 'edliPercent', e.target.value); }} required />
                     <button type="submit" className="btn btn-primary me-2">{editingId ? 'Update' : 'Save'}</button>
                     <button type="button" className="btn btn-secondary" onClick={function() { setShowForm(false); }}>Cancel</button>
                 </form>

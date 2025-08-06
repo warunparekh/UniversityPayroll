@@ -33,13 +33,29 @@ function TaxSlabApp() {
   }
 
   function updateField(field, value) {
-    formData[field] = value;
-    setFormData(formData);
+    var newData = {};
+    for (var key in formData) {
+      newData[key] = formData[key];
+    }
+    newData[field] = value;
+    setFormData(newData);
   }
 
   function updateSlab(i, field, val) {
-    formData.slabs[i][field] = val === "" ? null : Number(val) || 0;
-    setFormData(formData);
+    var newData = {};
+    for (var key in formData) {
+      newData[key] = formData[key];
+    }
+    var newSlabs = [];
+    for (var j = 0; j < formData.slabs.length; j++) {
+      newSlabs[j] = {};
+      for (var k in formData.slabs[j]) {
+        newSlabs[j][k] = formData.slabs[j][k];
+      }
+    }
+    newSlabs[i][field] = val === "" ? null : Number(val) || 0;
+    newData.slabs = newSlabs;
+    setFormData(newData);
   }
 
   function showNewForm() {
@@ -71,8 +87,10 @@ function TaxSlabApp() {
       <div className="container mt-3">
         <h2>{editingId ? "Edit Tax Slab" : "New Tax Slab"}</h2>
         <form onSubmit={handleSubmit}>
-          <input type="text" className="form-control mb-2" placeholder="Financial Year" value={formData.financialYear} onChange={function(e) { updateField("financialYear", e.target.value); }} required />
-          <input type="number" className="form-control mb-3" placeholder="Cess %" value={formData.cessPercent} onChange={function(e) { updateField("cessPercent", Number(e.target.value)); }} required />
+          <div>Financial Year</div>
+          <input type="text" className="form-control mb-2" value={formData.financialYear} onChange={function(e) { updateField("financialYear", e.target.value); }} required />
+          <div>Cess %</div>
+          <input type="number" className="form-control mb-3" value={formData.cessPercent || ""} onChange={function(e) { updateField("cessPercent", Number(e.target.value)); }} required />
           <table className="table table-bordered">
             <thead>
               <tr><th>From</th><th>To</th><th>Rate</th></tr>
