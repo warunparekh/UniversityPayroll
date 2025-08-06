@@ -20,40 +20,26 @@ function TaxSlabApp() {
   function handleSubmit(ev) {
     ev.preventDefault();
     var url = editingId ? "/TaxSlab/EditAjax" : "/TaxSlab/CreateAjax";
+    var data = formData;
+    data.slabs = formData.slabs.filter(function (s) { return s.rate > 0; });
+    data.id = editingId;
     fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(
-        Object.assign({}, formData, {
-          slabs: formData.slabs.filter(function (s) {
-            return s.rate > 0;
-          }),
-          id: editingId,
-        })
-      ),
+      body: JSON.stringify(data)
     }).then(function () {
       window.location.reload();
     });
   }
 
   function updateField(field, value) {
-    var obj = {};
-    for (var key in formData) {
-      obj[key] = formData[key];
-    }
-    obj[field] = value;
-    setFormData(obj);
+    formData[field] = value;
+    setFormData(formData);
   }
 
   function updateSlab(i, field, val) {
-    var slabs = formData.slabs.slice();
-    slabs[i][field] = val === "" ? null : Number(val) || 0;
-    var obj = {
-      financialYear: formData.financialYear,
-      cessPercent: formData.cessPercent,
-      slabs: slabs,
-    };
-    setFormData(obj);
+    formData.slabs[i][field] = val === "" ? null : Number(val) || 0;
+    setFormData(formData);
   }
 
   function showNewForm() {
@@ -62,37 +48,22 @@ function TaxSlabApp() {
   }
 
   function showEditForm(id) {
-    fetch("/TaxSlab/GetById?id=" + id)
-      .then(function (res) {
-        return res.json();
-      })
-      .then(function (data) {
-        var slabs = data.slabs.slice();
-        while (slabs.length < 6) {
-          slabs.push({ from: 0, to: null, rate: 0 });
-        }
-        setFormData({
-          financialYear: data.financialYear,
-          cessPercent: data.cessPercent,
-          slabs: slabs,
-        });
-        setEditingId(id);
-        setShowForm(true);
-      });
+    fetch("/TaxSlab/GetById?id=" + id).then(function (res) {
+      return res.json();
+    }).then(function (data) {
+      while (data.slabs.length < 6) {
+        data.slabs.push({ from: 0, to: null, rate: 0 });
+      }
+      setFormData(data);
+      setEditingId(id);
+      setShowForm(true);
+    });
   }
 
   function deleteTaxSlab(id) {
     if (!confirm("Delete?")) return;
-    fetch("/TaxSlab/DeleteAjax", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(id),
-    });
-    setTaxSlabs(
-      taxSlabs.filter(function (t) {
-        return t.id !== id;
-      })
-    );
+    fetch("/TaxSlab/DeleteAjax", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(id) });
+    setTaxSlabs(taxSlabs.filter(function (t) { return t.id !== id; }));
   }
 
   function renderForm() {
