@@ -1,129 +1,160 @@
-const defaultSlabs = () => Array(6).fill().map(() => ({ from: 0, to: null, rate: 0 }));
-const defaultFormData = () => ({ financialYear: '', cessPercent: 0, slabs: defaultSlabs() });
+function initialForm() {
+  var slabs = [];
+  for (var i = 0; i < 6; i++) {
+    slabs.push({ from: 0, to: null, rate: 0 });
+  }
+  return { financialYear: "", cessPercent: 0, slabs: slabs };
+}
 
 function TaxSlabApp() {
-  const [taxSlabs, setTaxSlabs] = React.useState(window.taxSlabsData);
-  const [showForm, setShowForm] = React.useState(false);
-  const [editingId, setEditingId] = React.useState(null);
-  const [formData, setFormData] = React.useState(defaultFormData());
+  var [taxSlabs, setTaxSlabs] = React.useState(window.taxSlabsData);
+  var [showForm, setShowForm] = React.useState(false);
+  var [editingId, setEditingId] = React.useState(null);
+  var [formData, setFormData] = React.useState(initialForm());
 
-  const resetForm = () => {
-    setFormData(defaultFormData());
+  function resetForm() {
+    setFormData(initialForm());
     setEditingId(null);
-  };
+  }
 
-  const handleSubmit = async ev => {
+  function handleSubmit(ev) {
     ev.preventDefault();
-    const url = editingId ? '/TaxSlab/EditAjax' : '/TaxSlab/CreateAjax';
-    await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...formData, slabs: formData.slabs.filter(s => s.rate > 0), id: editingId })
+    var url = editingId ? "/TaxSlab/EditAjax" : "/TaxSlab/CreateAjax";
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        Object.assign({}, formData, {
+          slabs: formData.slabs.filter(function (s) {
+            return s.rate > 0;
+          }),
+          id: editingId,
+        })
+      ),
+    }).then(function () {
+      window.location.reload();
     });
-    window.location.reload();
-  };
+  }
 
-  const updateField = (field, value) => setFormData({ ...formData, [field]: value });
+  function updateField(field, value) {
+    var obj = {};
+    for (var key in formData) {
+      obj[key] = formData[key];
+    }
+    obj[field] = value;
+    setFormData(obj);
+  }
 
-  const updateSlab = (i, field, val) => {
-    const slabs = formData.slabs.slice();
-    slabs[i] = { ...slabs[i], [field]: val === '' ? null : Number(val) || 0 };
-    setFormData({ ...formData, slabs });
-  };
+  function updateSlab(i, field, val) {
+    var slabs = formData.slabs.slice();
+    slabs[i][field] = val === "" ? null : Number(val) || 0;
+    var obj = {
+      financialYear: formData.financialYear,
+      cessPercent: formData.cessPercent,
+      slabs: slabs,
+    };
+    setFormData(obj);
+  }
 
-  const showNewForm = () => {
+  function showNewForm() {
     resetForm();
     setShowForm(true);
-  };
+  }
 
-  const showEditForm = async id => {
-    const res = await fetch(`/TaxSlab/GetById?id=${id}`);
-    const data = await res.json();
-    setFormData({
-      financialYear: data.financialYear,
-      cessPercent: data.cessPercent,
-      slabs: data.slabs.concat(defaultSlabs().slice(data.slabs.length))
+  function showEditForm(id) {
+    fetch("/TaxSlab/GetById?id=" + id)
+      .then(function (res) {
+        return res.json();
+      })
+      .then(function (data) {
+        var slabs = data.slabs.slice();
+        while (slabs.length < 6) {
+          slabs.push({ from: 0, to: null, rate: 0 });
+        }
+        setFormData({
+          financialYear: data.financialYear,
+          cessPercent: data.cessPercent,
+          slabs: slabs,
+        });
+        setEditingId(id);
+        setShowForm(true);
+      });
+  }
+
+  function deleteTaxSlab(id) {
+    if (!confirm("Delete?")) return;
+    fetch("/TaxSlab/DeleteAjax", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(id),
     });
-    setEditingId(id);
-    setShowForm(true);
-  };
+    setTaxSlabs(
+      taxSlabs.filter(function (t) {
+        return t.id !== id;
+      })
+    );
+  }
 
-  const deleteTaxSlab = async id => {
-    if (!confirm('Delete?')) return;
-    await fetch('/TaxSlab/DeleteAjax', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(id)
-    });
-    setTaxSlabs(taxSlabs.filter(t => t.id !== id));
-  };
+  function renderForm() {
+    return (
+      <div className="container mt-3">
+        <h2>{editingId ? "Edit Tax Slab" : "New Tax Slab"}</h2>
+        <form onSubmit={handleSubmit}>
+          <input type="text" className="form-control mb-2" placeholder="Financial Year" value={formData.financialYear} onChange={function(e) { updateField("financialYear", e.target.value); }} required />
+          <input type="number" className="form-control mb-3" placeholder="Cess %" value={formData.cessPercent} onChange={function(e) { updateField("cessPercent", Number(e.target.value)); }} required />
+          <table className="table table-bordered">
+            <thead>
+              <tr><th>From</th><th>To</th><th>Rate</th></tr>
+            </thead>
+            <tbody>
+              {formData.slabs.map(function(slab, i) {
+                return (
+                  <tr key={i}>
+                    <td><input type="number" className="form-control" value={slab.from || ""} onChange={function(e) { updateSlab(i, "from", e.target.value); }} /></td>
+                    <td><input type="number" className="form-control" value={slab.to || ""} onChange={function(e) { updateSlab(i, "to", e.target.value); }} /></td>
+                    <td><input type="number" className="form-control" value={slab.rate || ""} onChange={function(e) { updateSlab(i, "rate", e.target.value); }} /></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <button type="submit" className="btn btn-primary me-2">{editingId ? "Update" : "Save"}</button>
+          <button type="button" className="btn btn-secondary" onClick={function() { setShowForm(false); }}>Cancel</button>
+        </form>
+      </div>
+    );
+  }
 
-  const renderForm = () => (
-    <div className="container mt-3">
-      <h2>{editingId ? 'Edit Tax Slab' : 'New Tax Slab'}</h2>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          className="form-control mb-2"
-          placeholder="Financial Year"
-          value={formData.financialYear}
-          onChange={e => updateField('financialYear', e.target.value)}
-          required
-        />
-        <input
-          type="number"
-          className="form-control mb-3"
-          placeholder="Cess %"
-          value={formData.cessPercent}
-          onChange={e => updateField('cessPercent', Number(e.target.value))}
-          required
-        />
-        <table className="table table-bordered">
+  function renderTable() {
+    return (
+      <div className="container mt-3">
+        <h2>Tax Slabs</h2>
+        <button className="btn btn-primary mb-3" onClick={showNewForm}>New Tax Slab</button>
+        <table className="table table-striped">
           <thead>
-            <tr><th>From</th><th>To</th><th>Rate</th></tr>
+            <tr><th>FY</th><th>Cess</th><th>Slabs</th><th>Actions</th></tr>
           </thead>
           <tbody>
-            {formData.slabs.map((slab, i) => (
-              <tr key={i}>
-                <td><input type="number" className="form-control" value={slab.from || ''} onChange={e => updateSlab(i, 'from', e.target.value)} /></td>
-                <td><input type="number" className="form-control" value={slab.to || ''} onChange={e => updateSlab(i, 'to', e.target.value)} /></td>
-                <td><input type="number" className="form-control" value={slab.rate || ''} onChange={e => updateSlab(i, 'rate', e.target.value)} /></td>
-              </tr>
-            ))}
+            {taxSlabs.map(function(t) {
+              return (
+                <tr key={t.id}>
+                  <td>{t.financialYear}</td>
+                  <td>{t.cessPercent}</td>
+                  <td>{t.slabs.map(function(s) { return s.from + "-" + (s.to || "∞") + " @@ " + s.rate + "%"; }).join("; ")}</td>
+                  <td>
+                    <button className="btn btn-sm btn-secondary me-1" onClick={function() { showEditForm(t.id); }}>Edit</button>
+                    <button className="btn btn-sm btn-danger" onClick={function() { deleteTaxSlab(t.id); }}>Delete</button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
-        <button type="submit" className="btn btn-primary me-2">{editingId ? 'Update' : 'Save'}</button>
-        <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
-      </form>
-    </div>
-  );
-
-  const renderTable = () => (
-    <div className="container mt-3">
-      <h2>Tax Slabs</h2>
-      <button className="btn btn-primary mb-3" onClick={showNewForm}>New Tax Slab</button>
-      <table className="table table-striped">
-        <thead>
-          <tr><th>FY</th><th>Cess</th><th>Slabs</th><th>Actions</th></tr>
-        </thead>
-        <tbody>
-          {taxSlabs.map(t => (
-            <tr key={t.id}>
-              <td>{t.financialYear}</td>
-              <td>{t.cessPercent}</td>
-              <td>{t.slabs.map(s => `${s.from}-${s.to || '∞'} @@ ${s.rate}%`).join('; ')}</td>
-              <td>
-                <button className="btn btn-sm btn-secondary me-1" onClick={() => showEditForm(t.id)}>Edit</button>
-                <button className="btn btn-sm btn-danger" onClick={() => deleteTaxSlab(t.id)}>Delete</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+      </div>
+    );
+  }
 
   return showForm ? renderForm() : renderTable();
 }
 
-ReactDOM.createRoot(document.getElementById('react-root')).render(<TaxSlabApp />);
+ReactDOM.createRoot(document.getElementById("react-root")).render(<TaxSlabApp />);
